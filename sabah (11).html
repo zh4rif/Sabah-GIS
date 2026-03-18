@@ -1,0 +1,2544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SABAH · BIMP-EAGA GIS</title>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+  <link rel="preconnect" href="https://server.arcgisonline.com" crossorigin>
+  <link rel="dns-prefetch" href="https://tile.openstreetmap.org">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Noto+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+:root{
+  --java:#F0F7F4; --forest:#E8F5F0; --bark:#D6EDE5;
+  --terr:#E8450A; --terr2:#F26A1B; --rust:#C73D08;
+  --gold:#B87800; --gold2:#D4920A; --gold3:#F5B800;
+  --cream:#1A2E1A; --sand:#243824; --aged:#2E4A2E;
+  --sage:#1E7A3A; --teal:#0D6B58; --teal2:#0F8C72;
+  --cobalt:#1046A0; --text:#1A2E1A; --muted:rgba(26,46,26,0.52);
+  --border:rgba(184,120,0,0.28); --border2:rgba(26,46,26,0.10);
+  --panel:rgba(240,247,244,0.98); --card:rgba(255,255,255,0.92);
+  --serif:'Playfair Display',Georgia,serif; --body:'Noto Sans',system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--java);color:var(--text);font-family:var(--body);overflow:hidden}
+::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-thumb{background:rgba(184,120,0,0.35);border-radius:2px}
+
+/* ══ KEYFRAMES ══ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:none}}
+@keyframes shimG{0%{background-position:-400%}100%{background-position:400%}}
+@keyframes pulse4{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.35;transform:scale(0.78)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes sway{0%,100%{transform:rotate(-1.5deg)}50%{transform:rotate(1.5deg)}}
+
+/* ══ BATIK SVG OVERLAY ══ */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  opacity:0.045;
+  background-image:url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23C9910E'%3E%3Ccircle cx='40' cy='40' r='2.5'/%3E%3Ccircle cx='0' cy='0' r='2.5'/%3E%3Ccircle cx='80' cy='0' r='2.5'/%3E%3Ccircle cx='0' cy='80' r='2.5'/%3E%3Ccircle cx='80' cy='80' r='2.5'/%3E%3Cpath d='M40 0 L42 18 L40 20 L38 18 Z M40 60 L42 78 L40 80 L38 78 Z M0 40 L18 42 L20 40 L18 38 Z M60 40 L78 42 L80 40 L78 38 Z' fill-opacity='0.6'/%3E%3Cpath d='M20 20 Q40 10 60 20 Q70 40 60 60 Q40 70 20 60 Q10 40 20 20' fill='none' stroke='%23C9910E' stroke-width='0.5' opacity='0.5'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ══ TOPBAR ══ */
+.topbar{
+  position:fixed;top:0;left:0;right:0;z-index:1500;height:60px;
+  background:linear-gradient(90deg,rgba(255,255,255,0.99) 0%,rgba(245,252,248,0.99) 100%);
+  border-bottom:2px solid rgba(184,120,0,0.25);
+  display:flex;align-items:stretch;padding:0;
+  backdrop-filter:blur(24px);
+  box-shadow:0 3px 24px rgba(0,0,0,0.10);
+}
+.topbar::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold) 20%,var(--terr2) 50%,var(--gold2) 80%,transparent)}
+.topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(201,145,14,0.4),transparent)}
+
+.tb-brand{
+  padding:0 1.4rem;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;justify-content:center;min-width:235px;
+  background:linear-gradient(135deg,rgba(184,120,0,0.08),transparent);
+}
+.tb-brand-title{
+  font-family:var(--serif);font-size:1.22rem;font-weight:900;letter-spacing:2.5px;
+  background:linear-gradient(90deg,var(--gold),var(--gold2),var(--terr2),var(--gold3),var(--gold));
+  background-size:300% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  animation:shimG 5s linear infinite;line-height:1;
+}
+.tb-brand-sub{font-size:0.55rem;letter-spacing:3.5px;text-transform:uppercase;color:var(--teal2);margin-top:4px}
+
+.tb-nav{display:flex;align-items:stretch;padding:0 0.5rem;gap:2px}
+.tb-btn{
+  display:flex;align-items:center;gap:7px;padding:0 1.2rem;
+  font-family:var(--body);font-size:0.71rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
+  border:none;background:none;color:rgba(26,46,26,0.52);cursor:pointer;position:relative;transition:color 0.25s;
+}
+.tb-btn .bi{font-size:1.05rem}
+.tb-btn::after{content:'';position:absolute;bottom:0;left:0.5rem;right:0.5rem;height:2px;background:var(--terr2);transform:scaleX(0);transition:transform 0.3s cubic-bezier(.4,0,.2,1);border-radius:2px 2px 0 0}
+.tb-btn.active{color:var(--gold)} .tb-btn.active::after{transform:scaleX(1)}
+.tb-btn:hover:not(.active){color:var(--text)}
+.tb-div{width:1px;background:var(--border);margin:12px 0.4rem}
+.tb-right{margin-left:auto;display:flex;align-items:stretch;border-left:1px solid var(--border)}
+.tb-stat{padding:0 1.1rem;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center}
+.tb-sv{font-family:var(--serif);font-size:1.1rem;font-weight:700;color:var(--gold2);line-height:1}
+.tb-sl{font-size:0.52rem;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.tb-live{padding:0 1.1rem;display:flex;align-items:center;gap:7px;font-size:0.61rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal2)}
+.tb-ld{width:7px;height:7px;border-radius:50%;background:var(--teal2);animation:pulse4 2.5s infinite;flex-shrink:0}
+
+/* ══ SHELL ══ */
+.shell{display:flex;height:100vh;padding-top:60px}
+
+/* ══ LEFT PANEL ══ */
+.lpanel{
+  width:314px;flex-shrink:0;background:var(--panel);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+  transition:width 0.38s cubic-bezier(.4,0,.2,1);
+  position:relative;z-index:200;
+  box-shadow:3px 0 20px rgba(0,0,0,0.08);
+}
+.lpanel.slim{width:0}
+.lp-tog{
+  position:absolute;right:-14px;top:50%;transform:translateY(-50%);
+  width:14px;height:52px;background:#fff;
+  border:1px solid var(--border);border-left:none;border-radius:0 6px 6px 0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.55rem;color:var(--muted);cursor:pointer;z-index:300;transition:color 0.2s;
+  box-shadow:3px 0 8px rgba(0,0,0,0.07);
+}
+.lp-tog:hover{color:var(--gold)}
+.lp-pane{display:none;flex:1;flex-direction:column;overflow:hidden}
+.lp-pane.on{display:flex;animation:slideIn 0.32s ease both}
+
+/* Panel header */
+.lp-hd{
+  padding:1rem 1.2rem 0.8rem;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,rgba(184,120,0,0.06),transparent);
+  flex-shrink:0;position:relative;overflow:hidden;
+}
+.lp-hd::after{content:'✦';position:absolute;top:6px;right:12px;font-size:2rem;color:var(--gold);opacity:0.15;animation:sway 5s ease infinite}
+.lp-eye{font-size:0.57rem;letter-spacing:3.5px;text-transform:uppercase;color:var(--terr2);margin-bottom:4px}
+.lp-title{font-family:var(--serif);font-size:1.2rem;font-weight:700;color:var(--text);line-height:1.2}
+.lp-desc{font-size:0.68rem;color:var(--muted);margin-top:5px;line-height:1.55}
+.lp-scroll{flex:1;overflow-y:auto;padding:0.7rem}
+
+/* KPIs */
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.65rem}
+.kc{
+  background:#fff;border:1px solid var(--border);
+  border-radius:8px;padding:0.72rem;cursor:pointer;
+  transition:all 0.3s;position:relative;overflow:hidden;
+  animation:fadeUp 0.4s ease both;
+  box-shadow:0 2px 8px rgba(0,0,0,0.06);
+}
+::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%}
+.kc.g::before{background:var(--gold)} .kc.t::before{background:var(--teal2)} .kc.r::before{background:var(--terr)} .kc.s::before{background:var(--sage)}
+.kc:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:0 8px 24px rgba(184,120,0,0.18)}
+.kn{font-family:var(--serif);font-size:1.6rem;font-weight:700;line-height:1}
+.kc.g .kn{color:var(--gold2)} .kc.t .kn{color:var(--teal2)} .kc.r .kn{color:var(--terr2)} .kc.s .kn{color:var(--sage)}
+.kl{font-size:0.63rem;color:var(--muted);margin-top:3px;line-height:1.3}
+.ktag{display:inline-block;font-size:0.57rem;font-weight:600;margin-top:5px;padding:1px 6px;border-radius:3px}
+.ktag.up{background:rgba(123,174,104,0.15);color:var(--sage);border:1px solid rgba(123,174,104,0.3)}
+.ktag.hot{background:rgba(196,98,45,0.15);color:var(--terr2);border:1px solid rgba(196,98,45,0.3)}
+
+/* Chart blocks */
+.cblk{background:#fff;border:1px solid rgba(26,46,26,0.10);border-radius:8px;padding:0.75rem;margin-bottom:0.58rem;animation:fadeUp 0.45s ease both;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.cttl{font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:0.6rem;display:flex;align-items:center;gap:7px}
+.cttl::before{content:'';width:12px;height:1px;background:var(--terr2)}
+
+/* Opp cards */
+.opc{
+  background:linear-gradient(135deg,rgba(184,120,0,0.05),rgba(255,255,255,0.9));
+  border:1px solid var(--border);border-radius:8px;padding:0.75rem;
+  margin-bottom:0.48rem;cursor:pointer;transition:all 0.28s;animation:fadeUp 0.5s ease both;
+  box-shadow:0 2px 6px rgba(0,0,0,0.05);
+}
+.opc:hover{border-color:var(--gold);transform:translateX(3px);box-shadow:0 6px 22px rgba(184,120,0,0.15)}
+.opt{display:flex;align-items:flex-start;gap:8px;margin-bottom:4px}
+.opi{font-size:1.25rem;flex-shrink:0}
+.opn{font-family:var(--serif);font-size:0.93rem;font-weight:700;color:var(--text);flex:1;line-height:1.25}
+.opr{font-size:0.62rem;font-weight:700;color:var(--sage);background:rgba(30,122,58,0.1);border:1px solid rgba(30,122,58,0.25);padding:2px 7px;border-radius:4px;white-space:nowrap}
+.opd{font-size:0.68rem;color:var(--muted);line-height:1.55}
+.oprmk{margin-top:6px;padding:5px 8px;background:rgba(232,69,10,0.07);border-left:2px solid var(--terr2);border-radius:0 4px 4px 0;font-size:0.63rem;color:rgba(26,46,26,0.62);line-height:1.5;font-style:italic}
+
+/* Tourist panel */
+.rec-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:0.55rem}
+.rbadge{display:flex;align-items:center;gap:5px;padding:4px 9px;border-radius:20px;font-size:0.62rem;font-weight:600;cursor:pointer;transition:all 0.2s;border:1px solid transparent}
+.rbadge.unesc{background:rgba(38,122,106,0.12);color:var(--teal2);border-color:rgba(38,122,106,0.3)}
+.rbadge.geop{background:rgba(123,174,104,0.12);color:var(--sage);border-color:rgba(123,174,104,0.3)}
+.rbadge.herit{background:rgba(201,145,14,0.1);color:var(--gold2);border-color:rgba(201,145,14,0.3)}
+.rbadge:hover{transform:scale(1.04)}
+
+.frow{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:0.62rem}
+.fchip{padding:0.28rem 0.7rem;border-radius:20px;font-size:0.63rem;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all 0.22s;white-space:nowrap}
+.fchip.on{font-weight:700}
+
+.sgrid{display:flex;flex-direction:column;gap:0.52rem}
+.scard{
+  background:#fff;border:1px solid rgba(26,46,26,0.10);
+  border-radius:10px;overflow:hidden;cursor:pointer;
+  transition:all 0.3s;animation:fadeUp 0.45s ease both;
+  box-shadow:0 2px 8px rgba(0,0,0,0.06);
+}
+.scard:hover{border-color:var(--teal2);transform:translateY(-3px);box-shadow:0 10px 32px rgba(13,107,88,0.18)}
+.simg{height:100px;position:relative;overflow:hidden}
+.simg img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 0.6s,transform 0.7s}
+.simg img.vis{opacity:1}
+.scard:hover .simg img{transform:scale(1.06)}
+.sib{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.8rem}
+.stagw{position:absolute;top:7px;left:7px;display:flex;gap:4px;flex-wrap:wrap;max-width:95%}
+.stag{font-size:0.56rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:3px;backdrop-filter:blur(6px);white-space:nowrap}
+.stag.ct{background:rgba(22,36,14,0.88);color:var(--gold2);border:1px solid rgba(201,145,14,0.4)}
+.stag.rc{background:rgba(38,122,106,0.88);color:#fff;border:1px solid rgba(53,160,142,0.4)}
+.stag.rm{background:rgba(196,98,45,0.88);color:#fff;border:1px solid rgba(212,120,64,0.4)}
+.sbdy{padding:0.58rem 0.78rem}
+.styp{font-size:0.57rem;letter-spacing:2px;text-transform:uppercase;color:var(--teal2);margin-bottom:2px}
+.snm{font-family:var(--serif);font-size:0.92rem;font-weight:700;color:var(--text);line-height:1.2}
+.sdesc{font-size:0.63rem;color:var(--muted);margin-top:2px;line-height:1.45}
+.srcg{margin-top:6px;display:flex;align-items:flex-start;gap:5px;background:rgba(13,107,88,0.07);border:1px solid rgba(13,107,88,0.18);border-radius:5px;padding:4px 7px}
+.srcgi{font-size:0.85rem;flex-shrink:0}
+.srcgt{font-size:0.62rem;color:var(--teal);line-height:1.4}
+.srmk{margin-top:5px;font-size:0.61rem;color:rgba(26,46,26,0.52);border-left:2px solid var(--terr2);padding-left:7px;line-height:1.45;font-style:italic}
+
+/* Layer control */
+.swrp{padding:0.55rem 0.65rem;border-bottom:1px solid var(--border);position:relative}
+.sfld{width:100%;background:rgba(26,46,26,0.04);border:1px solid rgba(26,46,26,0.12);border-radius:7px;padding:0.44rem 0.85rem 0.44rem 2.1rem;color:var(--text);font-family:var(--body);font-size:0.76rem;outline:none;transition:border-color 0.2s}
+.sfld:focus{border-color:var(--gold)} .sfld::placeholder{color:var(--muted)}
+.sico{position:absolute;left:1.32rem;top:50%;transform:translateY(-50%);font-size:0.82rem;pointer-events:none}
+.lgwrp{padding:0.5rem 0;flex:1;overflow-y:auto}
+.lgg{margin-bottom:2px}
+.lgh{display:flex;align-items:center;gap:7px;padding:0.47rem 0.75rem;border-radius:6px;font-size:0.62rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:background 0.2s;user-select:none}
+.lgh:hover{background:rgba(26,46,26,0.05)}
+.lga{margin-left:auto;font-size:0.55rem;transition:transform 0.25s}
+.lgh.shut .lga{transform:rotate(-90deg)}
+.lgi{padding-left:4px}
+.lgi-row{display:flex;align-items:center;gap:7px;padding:0.4rem 0.75rem;border-radius:6px;cursor:pointer;transition:background 0.2s}
+.lgi-row:hover{background:rgba(26,46,26,0.04)}
+.lgdot{width:9px;height:9px;border-radius:50%;flex-shrink:0;transition:opacity 0.2s}
+.lgnm{font-size:0.74rem;flex:1;color:var(--text)}
+.lgcnt{font-size:0.6rem;color:var(--muted);background:rgba(26,46,26,0.07);padding:1px 5px;border-radius:3px}
+.lgtog{width:30px;height:17px;background:rgba(26,46,26,0.12);border-radius:9px;position:relative;flex-shrink:0;transition:background 0.25s}
+.lgtog.on{background:var(--gold)} .lgtog::after{content:'';position:absolute;top:2.5px;left:2.5px;width:12px;height:12px;background:#fff;border-radius:50%;transition:left 0.25s}
+.lgtog.on::after{left:15.5px}
+.bmbar{padding:0.62rem 0.75rem;border-top:1px solid var(--border);flex-shrink:0}
+.bmbar label{font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:0.4rem}
+.bmbts{display:flex;gap:5px;flex-wrap:wrap}
+.bmbtn{font-size:0.64rem;padding:0.3rem 0.65rem;background:rgba(26,46,26,0.04);border:1px solid rgba(26,46,26,0.12);border-radius:4px;color:var(--muted);cursor:pointer;transition:all 0.2s}
+.bmbtn.on,.bmbtn:hover{background:var(--terr);color:#fff;border-color:var(--terr);font-weight:600}
+
+/* ══ MAP ══ */
+.mwrap{flex:1;position:relative;overflow:hidden}
+#map{width:100%;height:100%}
+.mwrap::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:400;background:radial-gradient(ellipse at center,transparent 52%,rgba(220,235,228,0.30) 100%)}
+.mwrap::after{content:'';position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(to top,rgba(220,235,228,0.45),transparent);pointer-events:none;z-index:400}
+
+/* Floating search */
+.msrch{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:1000;width:360px}
+.msrch input{width:100%;background:rgba(255,255,255,0.97);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:9px;padding:0.72rem 1.1rem 0.72rem 2.6rem;color:var(--text);font-family:var(--body);font-size:0.82rem;outline:none;box-shadow:0 4px 28px rgba(0,0,0,0.14);transition:border-color 0.25s,box-shadow 0.25s}
+.msrch input:focus{border-color:var(--gold);box-shadow:0 4px 28px rgba(0,0,0,0.14),0 0 0 3px rgba(184,120,0,0.12)}
+.msrch input::placeholder{color:var(--muted)}
+.msrico{position:absolute;left:0.85rem;top:50%;transform:translateY(-50%);font-size:0.88rem}
+
+/* Legend */
+.mleg{position:absolute;bottom:22px;right:16px;z-index:1000;background:rgba(255,255,255,0.96);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:11px;padding:0.88rem 1.05rem;min-width:195px;box-shadow:0 12px 40px rgba(0,0,0,0.12)}
+.legtt{font-family:var(--serif);font-size:0.87rem;font-weight:700;color:var(--gold2);margin-bottom:0.65rem;display:flex;align-items:center;gap:7px}
+.legtt::before{content:'✦';font-size:0.7rem;color:var(--terr2)}
+.legrow{display:flex;align-items:center;gap:8px;margin-bottom:5px;cursor:pointer;transition:opacity 0.2s}
+.legrow:hover{opacity:0.72}
+.legdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.leglbl{font-size:0.68rem;color:rgba(26,46,26,0.72)}
+
+/* Coord bar */
+.cbar{position:absolute;bottom:0;left:0;right:0;z-index:600;background:rgba(255,255,255,0.95);backdrop-filter:blur(12px);border-top:1px solid var(--border);padding:3px 14px;font-size:0.6rem;font-family:'Courier New',monospace;color:var(--muted);display:flex;gap:2rem;align-items:center}
+
+/* ══ CVIA SITE SELECTION PANEL ══ */
+.cvia-hd{padding:1rem 1.2rem 0.8rem;border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(149,117,205,0.07),transparent);flex-shrink:0;position:relative;overflow:hidden}
+.cvia-hd::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#9575CD,#7E57C2,transparent)}
+.cvia-badge{display:inline-flex;align-items:center;gap:5px;font-size:0.52rem;letter-spacing:2.5px;text-transform:uppercase;color:#B39DDB;margin-bottom:5px;background:rgba(149,117,205,0.1);border:1px solid rgba(149,117,205,0.25);border-radius:3px;padding:2px 7px}
+.cvia-title{font-family:var(--serif);font-size:1.18rem;font-weight:900;color:var(--text);line-height:1.15}
+.cvia-sub{font-size:0.67rem;color:var(--muted);margin-top:4px;line-height:1.55}
+.cvia-coords{font-size:0.58rem;font-family:'Courier New',monospace;color:rgba(149,117,205,0.6);margin-top:5px}
+
+/* CVIA Stat strip */
+.cvia-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:7px;overflow:hidden;margin:0.6rem 0.7rem 0.5rem;flex-shrink:0}
+.cvia-stat{background:#fff;padding:0.55rem 0.5rem;text-align:center}
+.cvia-sv{font-family:var(--serif);font-size:1.12rem;font-weight:700;color:#B39DDB;line-height:1}
+.cvia-sl{font-size:0.51rem;letter-spacing:1.8px;text-transform:uppercase;color:var(--muted);margin-top:2px;line-height:1.3}
+
+/* Zone tab pills */
+.zone-tabs{display:flex;gap:4px;padding:0 0.7rem 0.55rem;flex-wrap:wrap;flex-shrink:0;border-bottom:1px solid var(--border)}
+.ztab{flex:1;min-width:60px;padding:0.32rem 0.4rem;font-size:0.59rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border2);background:rgba(255,255,255,0.03);color:var(--muted);border-radius:5px;cursor:pointer;transition:all 0.22s;text-align:center;white-space:nowrap}
+.ztab.on{background:rgba(149,117,205,0.18);border-color:rgba(149,117,205,0.45);color:#D1C4E9}
+.ztab:hover:not(.on){color:var(--cream);background:rgba(255,255,255,0.06)}
+
+/* Zone detail view */
+.zone-view{flex:1;overflow-y:auto;padding:0.65rem 0.7rem}
+
+/* Parcel cards */
+.parcel-card{background:#fff;border:1px solid rgba(26,46,26,0.10);border-radius:9px;padding:0.75rem;margin-bottom:0.5rem;cursor:pointer;transition:all 0.28s;position:relative;overflow:hidden;animation:fadeUp 0.38s ease both;box-shadow:0 2px 6px rgba(0,0,0,0.05)}
+.parcel-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.parcel-card.avail::before{background:#43A047}
+.parcel-card.partial::before{background:#C9910E}
+.parcel-card.reserved::before{background:#E53935}
+.parcel-card.future::before{background:#9575CD;background:repeating-linear-gradient(45deg,#9575CD,#9575CD 4px,transparent 4px,transparent 8px)}
+.parcel-card:hover{border-color:rgba(149,117,205,0.45);transform:translateX(3px);box-shadow:0 6px 22px rgba(149,117,205,0.1)}
+.parcel-head{display:flex;align-items:flex-start;gap:8px;margin-bottom:5px}
+.parcel-id{font-family:'Courier New',monospace;font-size:0.65rem;font-weight:700;color:#9575CD;background:rgba(149,117,205,0.12);border:1px solid rgba(149,117,205,0.22);padding:1px 6px;border-radius:3px;white-space:nowrap}
+.parcel-nm{font-family:var(--serif);font-size:0.9rem;font-weight:700;color:var(--cream);flex:1;line-height:1.2}
+.parcel-status{font-size:0.54rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:2px 7px;border-radius:3px;white-space:nowrap}
+.parcel-status.avail{background:rgba(67,160,71,0.15);color:#81C784;border:1px solid rgba(67,160,71,0.3)}
+.parcel-status.partial{background:rgba(201,145,14,0.15);color:var(--gold2);border:1px solid rgba(201,145,14,0.3)}
+.parcel-status.reserved{background:rgba(229,57,53,0.12);color:#EF9A9A;border:1px solid rgba(229,57,53,0.25)}
+.parcel-status.future{background:rgba(149,117,205,0.12);color:#CE93D8;border:1px solid rgba(149,117,205,0.25)}
+.parcel-meta{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px}
+.pmeta-item{background:rgba(26,46,26,0.03);border:1px solid rgba(26,46,26,0.07);border-radius:4px;padding:4px 7px}
+.pmeta-lbl{font-size:0.53rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);line-height:1}
+.pmeta-val{font-size:0.76rem;font-weight:600;color:var(--text);margin-top:1px}
+.parcel-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.ptag{font-size:0.56rem;padding:2px 7px;border-radius:3px;background:rgba(38,122,106,0.12);color:var(--teal2);border:1px solid rgba(38,122,106,0.22)}
+.ptag.infra{background:rgba(30,80,128,0.15);color:#64B5F6;border-color:rgba(30,80,128,0.3)}
+.ptag.util{background:rgba(201,145,14,0.1);color:var(--gold2);border-color:rgba(201,145,14,0.22)}
+.ptag.risk{background:rgba(229,57,53,0.1);color:#EF9A9A;border-color:rgba(229,57,53,0.22)}
+
+/* Suitability score bar */
+.suit-row{margin-bottom:0.55rem}
+.suit-lbl{display:flex;justify-content:space-between;align-items:center;font-size:0.63rem;margin-bottom:3px}
+.suit-nm{color:var(--muted)}
+.suit-sc{font-weight:700;font-family:var(--serif)}
+.suit-bar{height:5px;background:rgba(26,46,26,0.08);border-radius:3px;overflow:hidden}
+.suit-fill{height:100%;border-radius:3px;transition:width 0.8s cubic-bezier(.4,0,.2,1)}
+
+/* Infrastructure proximity table */
+.infra-tbl{width:100%;border-collapse:collapse;font-size:0.67rem;margin-bottom:0.55rem}
+.infra-tbl th{text-align:left;font-size:0.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:0 0 5px;font-weight:600;border-bottom:1px solid var(--border)}
+.infra-tbl td{padding:5px 0;border-bottom:1px solid rgba(26,46,26,0.06);vertical-align:middle}
+.infra-tbl tr:last-child td{border-bottom:none}
+.infra-icon{font-size:0.9rem;width:22px}
+.infra-name{color:var(--text);font-weight:500}
+.infra-dist{color:var(--teal2);font-weight:600;text-align:right}
+.infra-time{color:var(--muted);font-size:0.58rem;text-align:right}
+
+/* Section labels inside panel */
+.cv-sec{font-size:0.57rem;letter-spacing:2.5px;text-transform:uppercase;color:#9575CD;margin:0.75rem 0 0.45rem;display:flex;align-items:center;gap:7px}
+.cv-sec::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(149,117,205,0.25),transparent)}
+
+/* Action buttons */
+.cvia-actions{padding:0.7rem;border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:6px}
+.cvia-act-btn{flex:1;padding:0.55rem;font-size:0.64rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;border:1px solid;border-radius:6px;cursor:pointer;transition:all 0.22s;text-align:center}
+.cvia-act-btn.primary{background:rgba(149,117,205,0.18);border-color:rgba(149,117,205,0.45);color:#D1C4E9}
+.cvia-act-btn.primary:hover{background:rgba(149,117,205,0.32);border-color:#9575CD}
+.cvia-act-btn.secondary{background:transparent;border-color:var(--border2);color:var(--muted)}
+.cvia-act-btn.secondary:hover{border-color:var(--border);color:var(--cream)}
+
+/* CVIA map overlay chip */
+.cvia-map-chip{position:absolute;top:14px;right:16px;z-index:1000;background:rgba(255,255,255,0.97);backdrop-filter:blur(20px);border:1px solid rgba(149,117,205,0.35);border-radius:9px;padding:0.6rem 0.9rem;min-width:180px;box-shadow:0 8px 32px rgba(149,117,205,0.15);display:none}
+.cvia-map-chip.vis{display:block;animation:fadeUp 0.35s ease both}
+.cmc-title{font-size:0.58rem;letter-spacing:2.5px;text-transform:uppercase;color:#9575CD;margin-bottom:6px}
+.cmc-zone-list{}
+.cmc-zone{display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;transition:opacity 0.2s}
+.cmc-zone:hover{opacity:0.72}
+.cmc-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.cmc-lbl{font-size:0.67rem;flex:1;color:rgba(26,46,26,0.72)}
+.cmc-ha{font-size:0.6rem;color:var(--muted);font-family:'Courier New',monospace}
+.clive{color:var(--gold2)}
+
+/* Loader */
+.mloader{position:absolute;inset:0;z-index:2000;background:var(--java);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;transition:opacity 0.8s}
+.mloader.done{opacity:0;pointer-events:none}
+.mring{width:44px;height:44px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.9s linear infinite}
+.mltit{font-family:var(--serif);font-size:1.2rem;font-weight:700;color:var(--gold2);letter-spacing:3px}
+.mlsub{font-size:0.58rem;letter-spacing:3.5px;text-transform:uppercase;color:var(--sage)}
+
+/* ══ LEAFLET POPUP ══ */
+.leaflet-popup-content-wrapper{
+  background:rgba(255,255,255,0.98)!important;border:1px solid rgba(184,120,0,0.28)!important;
+  border-radius:11px!important;color:var(--text)!important;
+  box-shadow:0 16px 50px rgba(0,0,0,0.14),0 0 0 1px rgba(184,120,0,0.05)!important;
+  backdrop-filter:blur(24px)!important;
+}
+.leaflet-popup-tip{background:rgba(255,255,255,0.98)!important}
+.leaflet-popup-content{margin:13px 17px!important;min-width:195px!important}
+.pem{font-size:2.1rem;display:block;margin-bottom:6px}
+.ptt{font-family:var(--serif);font-size:1.08rem;font-weight:700;color:var(--gold2);line-height:1.2}
+.pcat{font-size:0.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--teal2);margin:2px 0 7px}
+.psep{height:1px;background:var(--border);margin:7px 0}
+.ptyp{font-size:0.64rem;color:var(--sage);font-style:italic;margin-bottom:4px}
+.pdesc{font-size:0.72rem;color:rgba(26,46,26,0.60);line-height:1.6}
+.precog{display:flex;align-items:flex-start;gap:5px;margin-top:8px;background:rgba(13,107,88,0.07);border:1px solid rgba(13,107,88,0.20);border-radius:5px;padding:5px 8px}
+.precog span:first-child{flex-shrink:0;font-size:0.9rem}
+.precog-t{font-size:0.64rem;color:rgba(15,140,114,0.92);line-height:1.45}
+.prmk{margin-top:6px;font-size:0.62rem;color:rgba(26,46,26,0.52);border-left:2px solid var(--terr2);padding-left:7px;line-height:1.5;font-style:italic}
+.pbadge{display:inline-flex;align-items:center;gap:4px;margin-top:7px;font-size:0.62rem;font-weight:700;padding:3px 8px;border-radius:4px}
+.pbadge.inv{background:rgba(123,174,104,0.12);color:var(--sage);border:1px solid rgba(123,174,104,0.28)}
+.pbadge.tour{background:rgba(13,107,88,0.07);color:var(--teal2);border:1px solid rgba(13,107,88,0.20)}
+.pcoords{font-size:0.57rem;color:rgba(26,46,26,0.30);font-family:'Courier New',monospace;margin-top:7px}
+
+/* ══ MAP LEGEND STRIP ══ */
+.map-legend{
+  position:absolute;bottom:38px;right:10px;z-index:1000;
+  background:rgba(255,255,255,0.97);border:1px solid rgba(184,120,0,0.25);
+  border-radius:8px;padding:8px 11px;
+  box-shadow:0 3px 16px rgba(0,0,0,0.14);
+  font-family:var(--body);font-size:0.6rem;min-width:155px;
+  backdrop-filter:blur(10px);
+}
+.map-legend-title{
+  font-size:0.55rem;letter-spacing:2.5px;text-transform:uppercase;
+  color:var(--gold);margin-bottom:6px;font-weight:700;
+  display:flex;align-items:center;gap:5px;
+}
+.map-legend-title::before{content:'';width:8px;height:1px;background:var(--terr2);}
+.leg-row{display:flex;align-items:center;gap:7px;padding:2px 0;cursor:pointer;transition:opacity 0.2s;}
+.leg-row:hover{opacity:0.7;}
+.leg-line{width:22px;height:0;border-radius:2px;flex-shrink:0;}
+.leg-dash{border-style:dashed!important;}
+.leg-box{width:13px;height:13px;border-radius:2px;flex-shrink:0;opacity:0.55;border:1.5px solid;}
+.leg-nm{color:rgba(26,46,26,0.72);font-size:0.59rem;line-height:1;}
+.leg-sep{height:1px;background:rgba(184,120,0,0.15);margin:4px 0;}
+
+/* ══ LAYER OPACITY SLIDER ══ */
+.lgi-row-ext{padding:2px 8px 6px;border-bottom:1px solid rgba(26,46,26,0.06);}
+.opacity-slider{width:100%;height:3px;-webkit-appearance:none;appearance:none;background:rgba(26,46,26,0.15);border-radius:2px;outline:none;cursor:pointer;}
+.opacity-slider::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--gold);cursor:pointer;}
+.opacity-label{font-size:0.52rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;display:flex;justify-content:space-between;}
+
+/* ══ PERFORMANCE BADGE ══ */
+.perf-badge{display:inline-flex;align-items:center;gap:4px;font-size:0.52rem;color:var(--teal2);background:rgba(13,107,88,0.1);border:1px solid rgba(13,107,88,0.25);border-radius:3px;padding:1px 6px;margin-left:auto;}
+
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="tb-brand">
+    <div class="tb-brand-title">SABAH GIS</div>
+    <div class="tb-brand-sub">BIMP-EAGA · SEDIA</div>
+  </div>
+  <div class="tb-nav">
+    <button class="tb-btn active" id="btn-investor" onclick="setMode('investor')"><span class="bi">💼</span>Investor</button>
+    <button class="tb-btn" id="btn-tourist" onclick="setMode('tourist')"><span class="bi">🌺</span>Tourism</button>
+    <div class="tb-div"></div>
+    <button class="tb-btn" id="btn-cvia" onclick="setMode('cvia')"><span class="bi">🏗</span>KKIP · Industrial Park</button>
+    <button class="tb-btn" id="btn-krc" onclick="setMode('krc')"><span class="bi">🌿</span>POIC · Lahad Datu</button>
+    <div class="tb-div"></div>
+    <button class="tb-btn" id="btn-layers" onclick="setMode('layers')"><span class="bi">🗂</span>Layers</button>
+    <button class="tb-btn" id="btn-analytics" onclick="setMode('analytics')"><span class="bi">📊</span>Analytics</button>
+  </div>
+  <div class="tb-right">
+
+    <div class="tb-live"><div class="tb-ld"></div>Live GIS</div>
+  </div>
+</div>
+
+<div class="shell">
+  <!-- LEFT PANEL -->
+  <div class="lpanel" id="lpanel">
+    <div class="lp-tog" id="lptog" onclick="togglePanel()">◀</div>
+
+    <!-- INVESTOR PANE -->
+    <div class="lp-pane on" id="pane-investor">
+      <div class="lp-hd">
+        <div class="lp-eye">Economic Corridor Intelligence</div>
+        <div class="lp-title">Investor Dashboard</div>
+        <div class="lp-desc">Industrial zones, ports, special economic zones &amp; prime investment opportunities across Sabah – BIMP-EAGA.</div>
+      </div>
+      <div class="lp-scroll">
+        <div class="kgrid">
+          <div class="kc g" onclick="flyGroup('border_crossing')" style="animation-delay:.05s"><div class="kn">5</div><div class="kl">Entry Points</div><div class="ktag hot">🔥 Active</div></div>
+          <div class="kc t" onclick="flyGroup('industrial')" style="animation-delay:.1s"><div class="kn">10</div><div class="kl">Industrial Parks</div><div class="ktag up">↑ +3 Planned</div></div>
+          <div class="kc r" onclick="flyGroup('port')" style="animation-delay:.15s"><div class="kn">12</div><div class="kl">Ports & Airports</div><div class="ktag up">↑ Expanding</div></div>
+          <div class="kc s" onclick="flyGroup('university')" style="animation-delay:.2s"><div class="kn">7</div><div class="kl">Universities / HLI</div><div class="ktag up">↑ Talent Hub</div></div>
+        </div>
+
+        <div class="cblk" style="animation-delay:.25s">
+          <div class="cttl">Feature Distribution by Category</div>
+          <div style="position:relative;height:190px"><canvas id="donutChart"></canvas></div>
+        </div>
+        <div class="cblk" style="animation-delay:.3s">
+          <div class="cttl">Sabah Visitor Trend 2018–2023 (Millions)</div>
+          <div style="position:relative;height:105px"><canvas id="lineChart"></canvas></div>
+        </div>
+
+        <div class="cttl" style="margin:.45rem 0 .55rem">💡 Investment Opportunities</div>
+
+        <div class="opc" onclick="flyCoords(5.974,116.073)" style="animation-delay:.4s">
+          <div class="opt"><span class="opi">🏗</span><span class="opn">Kota Kinabalu Industrial Park (KKIP)</span><span class="opr">15–25%</span></div>
+          <div class="opd">4,313-acre premier industrial park. Electronics, halal food, logistics &amp; oil &amp; gas downstream.</div>
+          <div class="oprmk">🔨 Phase 3 expansion ongoing — targeting RM8B investment by 2030.</div>
+        </div>
+        <div class="opc" onclick="flyCoords(5.032,118.122)" style="animation-delay:.44s">
+          <div class="opt"><span class="opi">🛢️</span><span class="opn">POIC Lahad Datu Palm Oil Industrial Cluster</span><span class="opr">18–28%</span></div>
+          <div class="opd">Malaysia's largest palm oil industrial cluster. Oleochemicals, biodiesel, specialty fats &amp; upstream R&amp;D.</div>
+        </div>
+        <div class="opc" onclick="flyCoords(4.244,117.887)" style="animation-delay:.48s">
+          <div class="opt"><span class="opi">🌊</span><span class="opn">POIC Tawau Seafood &amp; Aquaculture Hub</span><span class="opr">12–20%</span></div>
+          <div class="opd">Integrated aquaculture processing zone. Proximity to Brunei &amp; Philippines. Export-ready seafood corridor.</div>
+        </div>
+        <div class="opc" onclick="flyCoords(5.840,116.100)" style="animation-delay:.52s">
+          <div class="opt"><span class="opi">🌿</span><span class="opn">Kinabalu UNESCO Geopark Eco-Resort</span><span class="opr">14–22%</span></div>
+          <div class="opd">UNESCO World Heritage Site buffer zone. Luxury eco-lodges, adventure tourism &amp; research facilities.</div>
+        </div>
+        <div class="opc" onclick="flyCoords(5.891,116.047)" style="animation-delay:.56s">
+          <div class="opt"><span class="opi">✈️</span><span class="opn">Kota Kinabalu Aviation &amp; Logistics Hub</span><span class="opr">10–18%</span></div>
+          <div class="opd">KK International Airport — 7M+ pax/yr. MRO, cargo logistics &amp; aviation services expansion.</div>
+        </div>
+        <div class="opc" onclick="flyCoords(5.839,118.117)" style="animation-delay:.6s">
+          <div class="opt"><span class="opi">🐠</span><span class="opn">Semporna Coral Triangle Dive Tourism</span><span class="opr">12–18%</span></div>
+          <div class="opd">Sipadan — world's #1 dive site. Boutique dive resort development, marine conservation ecotourism.</div>
+        </div>
+        <div class="opc" onclick="flyCoords(5.841,117.960)" style="animation-delay:.64s">
+          <div class="opt"><span class="opi">🌳</span><span class="opn">Danum Valley Research &amp; Eco-Tourism</span><span class="opr">10–16%</span></div>
+          <div class="opd">UNESCO-recognised primary rainforest. Wildlife research, high-end eco-lodges &amp; carbon credit potential.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOURIST PANE -->
+    <div class="lp-pane" id="pane-tourist">
+      <div class="lp-hd">
+        <div class="lp-title">Tourism Guide</div>
+        <div class="lp-desc">UNESCO World Heritage, Coral Triangle, Kinabalu Geopark, orangutan sanctuaries &amp; island paradises.</div>
+      </div>
+      <div class="lp-scroll">
+        <div class="rec-row">
+          <div class="rbadge unesc" onclick="filterSpots('rec','UNESCO')">🏛 UNESCO (5)</div>
+          <div class="rbadge geop" onclick="filterSpots('rec','Geopark')">🌋 Geopark (2)</div>
+          <div class="rbadge herit" onclick="filterSpots('rec','Heritage')">🏺 Heritage (1)</div>
+          <div class="rbadge" style="background:rgba(196,98,45,0.1);color:var(--terr2);border-color:rgba(196,98,45,0.3)" onclick="filterSpots('rec','Under Construction')">🔨 Active (1)</div>
+        </div>
+        <div class="frow" id="tourFilters"></div>
+        <div class="sgrid" id="tourGrid"></div>
+      </div>
+    </div>
+
+    <!-- LAYERS PANE -->
+    <div class="lp-pane" id="pane-layers">
+      <div class="lp-hd">
+        <div class="lp-eye">Spatial Data</div>
+        <div class="lp-title">Layer Control</div>
+        <div class="lp-desc">Toggle categories, filter features, switch basemaps.</div>
+      </div>
+      <div class="swrp">
+        <span class="sico">🔍</span>
+        <input class="sfld" id="lyrSrch" placeholder="Search layers or features…">
+      </div>
+      <div class="lgwrp" id="lyrGrps"></div>
+      <div class="bmbar">
+        <label>Basemap</label>
+        <div class="bmbts">
+          <button class="bmbtn on" onclick="setBasemap('osm',this)">OSM</button>
+          <button class="bmbtn" onclick="setBasemap('satellite',this)">Satellite</button>
+          <button class="bmbtn" onclick="setBasemap('dark',this)">Dark</button>
+          <button class="bmbtn" onclick="setBasemap('topo',this)">Topo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CVIA SITE SELECTION PANE -->
+    <div class="lp-pane" id="pane-cvia" style="display:none;flex-direction:column">
+      <div class="cvia-hd">
+        <div class="cvia-badge">🏗 GIS · Site Selection</div>
+        <div class="cvia-title">Kota Kinabalu Industrial Park (KKIP)</div>
+        <div class="cvia-sub">Sabah · SEDIA Strategic Industrial Zone · Halal, E&amp;E, Oil &amp; Gas Downstream</div>
+        <div class="cvia-coords">5.974°N, 116.073°E · 4,313 acres · Kota Belud Road, Kota Kinabalu</div>
+      </div>
+      <div class="cvia-stats">
+        <div class="cvia-stat"><div class="cvia-sv">4,313</div><div class="cvia-sl">Total Acres</div></div>
+        <div class="cvia-stat"><div class="cvia-sv">RM8B</div><div class="cvia-sl">Target Invest.</div></div>
+        <div class="cvia-stat"><div class="cvia-sv">30,000+</div><div class="cvia-sl">Jobs by 2030</div></div>
+      </div>
+      <div class="zone-tabs" id="cviaTabs">
+        <div class="ztab on" onclick="cviaTab('overview',this)">Overview</div>
+        <div class="ztab" onclick="cviaTab('parcels',this)">Parcels</div>
+        <div class="ztab" onclick="cviaTab('suitability',this)">Suitability</div>
+        <div class="ztab" onclick="cviaTab('infra',this)">Infra</div>
+      </div>
+      <div class="zone-view" id="cviaView"></div>
+      <div class="cvia-actions">
+        <div class="cvia-act-btn primary" onclick="flyToCVIA()">🎯 Fly to KKIP</div>
+        <div class="cvia-act-btn secondary" onclick="toggleCVIASubzones()">🗺 Sub-zones</div>
+      </div>
+    </div>
+
+    <!-- KRC PANE -->
+    <div class="lp-pane" id="pane-krc" style="display:none;flex-direction:column">
+      <div class="cvia-hd" style="background:linear-gradient(180deg,rgba(67,160,71,0.14),transparent);position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#43A047,#66BB6A,transparent)"></div>
+        <div class="cvia-badge" style="background:rgba(67,160,71,0.15);border-color:rgba(67,160,71,0.35);color:#81C784">🌿 BIMP-EAGA · Palm Oil Industrial Cluster</div>
+        <div class="cvia-title">POIC Lahad Datu</div>
+        <div class="cvia-sub">Lahad Datu, Sabah · Malaysia's Largest Palm Oil Industrial Cluster · BIMP-EAGA Oil Palm Corridor</div>
+        <div class="cvia-coords">5.032°N, 118.122°E · 8,000 acres (Phase 1–3) · Lahad Datu, Sabah</div>
+      </div>
+      <div class="cvia-stats" style="border-color:rgba(67,160,71,0.2)">
+        <div class="cvia-stat"><div class="cvia-sv" style="color:#81C784">8,000</div><div class="cvia-sl">Total Acres</div></div>
+        <div class="cvia-stat"><div class="cvia-sv" style="color:#81C784">RM12B</div><div class="cvia-sl">Target Invest.</div></div>
+        <div class="cvia-stat"><div class="cvia-sv" style="color:#81C784">20,000</div><div class="cvia-sl">Jobs Target</div></div>
+      </div>
+      <div class="zone-view" id="krcView" style="flex:1;overflow-y:auto;padding:0.7rem"></div>
+      <div class="cvia-actions">
+        <div class="cvia-act-btn primary" onclick="flyToKRC()" style="background:rgba(67,160,71,0.18);border-color:rgba(67,160,71,0.4);color:#81C784">🎯 Fly to POIC</div>
+        <div class="cvia-act-btn secondary" onclick="window.open('https://www.sedia.com.my','_blank')">🔗 SEDIA Website</div>
+      </div>
+    </div>
+
+    <!-- ANALYTICS PANE — Border Movement Data 2018-2025 -->
+    <div class="lp-pane" id="pane-analytics" style="display:none;flex-direction:column;overflow:hidden">
+      <div class="lp-hd" style="background:linear-gradient(180deg,rgba(13,107,88,0.12),transparent);position:relative">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--teal),var(--teal2),transparent)"></div>
+        <div class="lp-eye">Sabah Visitor Movement</div>
+        <div class="lp-title">Visitor Movement Analytics</div>
+        <div class="lp-desc">Key Sabah entry points · 2018–2023 · Arrivals &amp; Departures by nationality</div>
+      </div>
+
+      <!-- Country + Year tabs row -->
+      <div style="flex-shrink:0;border-bottom:1px solid var(--border)">
+        <!-- Country selector -->
+        <div style="display:flex;gap:0;padding:6px 10px 0">
+          <button id="an-nat-all" onclick="anSetNat('all',this)"
+            style="flex:1;padding:4px 0;font-size:0.58rem;font-weight:700;letter-spacing:.5px;border:1px solid var(--border2);border-radius:5px 0 0 5px;background:rgba(149,117,205,0.2);border-color:rgba(149,117,205,0.5);color:#D1C4E9;cursor:pointer">ALL</button>
+          <button id="an-nat-my"  onclick="anSetNat('my',this)"
+            style="flex:1;padding:4px 0;font-size:0.58rem;font-weight:700;letter-spacing:.5px;border:1px solid var(--border2);border-radius:0;background:rgba(255,255,255,0.03);color:var(--muted);cursor:pointer">🇲🇾 MY</button>
+          <button id="an-nat-th"  onclick="anSetNat('th',this)"
+            style="flex:1;padding:4px 0;font-size:0.58rem;font-weight:700;letter-spacing:.5px;border:1px solid var(--border2);border-radius:0 5px 5px 0;background:rgba(255,255,255,0.03);color:var(--muted);cursor:pointer">🌍 INTL</button>
+        </div>
+        <!-- Year tabs -->
+        <div style="display:flex;gap:3px;padding:5px 10px 6px;flex-wrap:wrap" id="an-year-tabs">
+          <button class="ztab on" onclick="anSetYear('all',this)" style="font-size:0.51rem;min-width:0;padding:2px 7px">All</button>
+        </div>
+      </div>
+
+      <!-- KPI strip — 4 tiles -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1px;background:var(--border);border-bottom:1px solid var(--border);flex-shrink:0">
+        <div class="cvia-stat" style="padding:6px 4px">
+          <div class="cvia-sv" id="an-kpi-arr" style="color:#4DB6AC;font-size:0.85rem">—</div>
+          <div class="cvia-sl">Arrivals</div>
+        </div>
+        <div class="cvia-stat" style="padding:6px 4px">
+          <div class="cvia-sv" id="an-kpi-dep" style="color:#FFB74D;font-size:0.85rem">—</div>
+          <div class="cvia-sl">Departures</div>
+        </div>
+        <div class="cvia-stat" style="padding:6px 4px">
+          <div class="cvia-sv" id="an-kpi-total" style="color:#CE93D8;font-size:0.85rem">—</div>
+          <div class="cvia-sl">Total</div>
+        </div>
+        <div class="cvia-stat" style="padding:6px 4px">
+          <div class="cvia-sv" id="an-kpi-yoy" style="font-size:0.75rem">—</div>
+          <div class="cvia-sl">vs Prev Yr</div>
+        </div>
+      </div>
+
+      <div style="flex:1;overflow-y:auto;padding:0.55rem 0.65rem" id="an-scroll">
+
+        <!-- Annual trend -->
+        <div class="cblk">
+          <div class="cttl" id="an-trend-title">Annual Trend</div>
+          <div style="position:relative;height:128px"><canvas id="anTrendChart"></canvas></div>
+        </div>
+
+        <!-- Crossing breakdown (ARR/DEP toggle) -->
+        <div class="cblk">
+          <div class="cttl" style="display:flex;justify-content:space-between;align-items:center">
+            <span id="an-bar-title">Crossing Breakdown</span>
+            <div style="display:flex;gap:3px">
+              <button id="an-dir-arr" onclick="anSetDir('arr',this)"
+                style="padding:1px 7px;font-size:0.5rem;font-weight:700;border:1px solid rgba(77,182,172,0.5);border-radius:4px;background:rgba(77,182,172,0.2);color:#4DB6AC;cursor:pointer">ARR</button>
+              <button id="an-dir-dep" onclick="anSetDir('dep',this)"
+                style="padding:1px 7px;font-size:0.5rem;font-weight:700;border:1px solid var(--border2);border-radius:4px;background:rgba(255,255,255,0.03);color:var(--muted);cursor:pointer">DEP</button>
+            </div>
+          </div>
+          <div style="position:relative;height:155px"><canvas id="anBarChart"></canvas></div>
+        </div>
+
+        <!-- MY vs TH comparison (only in ALL nationality view) -->
+        <div class="cblk" id="an-nat-compare-blk">
+          <div class="cttl">Domestic vs International — Annual Comparison</div>
+          <div style="position:relative;height:128px"><canvas id="anNatTrendChart"></canvas></div>
+        </div>
+
+        <!-- Monthly pattern -->
+        <div class="cblk">
+          <div class="cttl" style="display:flex;justify-content:space-between;align-items:center">
+            <span>Monthly Pattern</span>
+            <select id="an-crossing-sel" onchange="anRenderMonthly()"
+              style="font-size:0.58rem;background:rgba(255,255,255,0.07);border:1px solid var(--border2);color:var(--cream);border-radius:4px;padding:1px 4px;cursor:pointer">
+              <option value="all">All Crossings</option>
+            </select>
+          </div>
+          <div style="position:relative;height:115px"><canvas id="anMonthChart"></canvas></div>
+        </div>
+
+        <!-- Crossing summary table -->
+        <div class="cblk">
+          <div class="cttl" id="an-table-title">Crossing Summary</div>
+          <div id="an-table"></div>
+        </div>
+
+        <div style="font-size:0.51rem;color:var(--muted);padding:2px 0 10px;text-align:center">
+          * Data: Sabah Tourism Board / Jabatan Imigresen Malaysia &nbsp;·&nbsp; Source: STB / JIM 2023
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MAP -->
+  <div class="mwrap">
+    <div class="mloader" id="mloader">
+      <div class="mring"></div>
+      <div class="mltit">SABAH GIS</div>
+      <div class="mlsub">Loading Sabah spatial features…</div>
+    </div>
+    <div id="map"></div>
+
+    <div class="msrch">
+      <span class="msrico">🔍</span>
+      <input type="text" id="mapSrch" placeholder="Search Sabah locations, KKIP, Sipadan, Kinabalu Park, ports…">
+    </div>
+    <div class="mleg" id="mleg">
+      <div class="legtt">Map Layers</div>
+      <div id="legBody"></div>
+    </div>
+<div class="cmc-zone-list" id="cviaChipZones"></div>
+    </div>
+    <div class="cbar">
+      <span>📍 <span class="clive" id="coordLive">Hover for coordinates</span></span>
+      <span>CRS: WGS84 / EPSG:4326</span>
+      <span><span id="visCount">54</span> features visible</span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════
+   117 FEATURES — 111 original + 6 new from KML/Excel
+   Fields: n=name, d=description, c=category (port/airport/industrial/university/border_crossing/shopping/tourism/nature)
+   lat/lng, type=tourism type, recog=recognition, remark=project note, img=real image URL
+══════════════════════════════════════ */
+const F=[
+  /* ── PORTS (7) ── */
+  {n:"Kota Kinabalu Port",d:"Sabah's main international port. Container, bulk cargo & cruise terminal. Gateway to BIMP-EAGA.",c:"port",lat:5.9749,lng:116.0734,img:"https://images.unsplash.com/photo-1564768753539-3b945fd3ad41?w=600&q=75"},
+  {n:"Sandakan Port",d:"Sabah's largest timber & cargo port. Key export hub for palm oil, plywood & forest products.",c:"port",lat:5.8402,lng:118.1179,img:"https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=600&q=75"},
+  {n:"Tawau Port",d:"Southern Sabah's main port. Cross-border trade gateway to Nunukan & Tarakan, Indonesia.",c:"port",lat:4.2467,lng:117.8896,img:"https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=600&q=75"},
+  {n:"Kudat Port",d:"Northernmost Sabah port. Rungus cultural gateway and coastal fishing hub.",c:"port",lat:6.8859,lng:116.8441},
+  {n:"Semporna Jetty",d:"Main departure point for Sipadan, Mabul & Kapalai dive islands. Coral Triangle gateway.",c:"port",lat:4.4813,lng:118.6113,img:"https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=600&q=75"},
+  {n:"Lahad Datu Port",d:"POIC deep-sea port. Bulk liquid terminal for palm oil exports to global markets.",c:"port",lat:5.0251,lng:118.3234},
+  {n:"Sapangar Bay Container Port",d:"Sabah's primary container terminal. Operated by Sabah Ports Authority.",c:"port",lat:6.0823,lng:116.1214},
+
+  /* ── AIRPORTS (6) ── */
+  {n:"Kota Kinabalu International Airport",d:"Sabah's main international gateway. 7M+ pax/yr. Direct routes: China, South Korea, Hong Kong, Japan.",c:"airport",lat:5.9371,lng:116.0512,type:"International Gateway",recog:"ASEAN Top 5 Regional Airport",img:"https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&q=75"},
+  {n:"Sandakan Airport",d:"Second busiest Sabah airport. Regional hub serving east coast districts.",c:"airport",lat:5.9009,lng:118.0590,img:"https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&q=75"},
+  {n:"Tawau Airport",d:"Southern Sabah gateway. Key hub for POIC Tawau & cross-border Borneo trade.",c:"airport",lat:4.2658,lng:117.8893,img:"https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&q=75"},
+  {n:"Lahad Datu Airport",d:"East Sabah gateway airport. Access to Danum Valley Conservation Area & POIC Lahad Datu.",c:"airport",lat:5.0323,lng:118.3239},
+  {n:"Kudat Airport",d:"Northern Sabah domestic airport. Gateway to Rungus longhouses & Tip of Borneo.",c:"airport",lat:6.9225,lng:116.8356},
+  {n:"Semporna Airport",d:"Coral Triangle domestic airport. Dive tourism corridor serving Sipadan & Mabul.",c:"airport",lat:4.4733,lng:118.5735},
+
+  /* ── INDUSTRIAL (10) ── */
+  {n:"Kota Kinabalu Industrial Park (KKIP)",d:"Sabah's premier industrial park – 4,313 acres. E&E, halal food, oil & gas downstream, logistics.",c:"industrial",lat:5.9742,lng:116.0731,img:"https://images.unsplash.com/photo-1565043589221-1a6fd9ae45c7?w=600&q=75"},
+  {n:"POIC Lahad Datu",d:"Malaysia's largest palm oil industrial cluster. Oleochemicals, biodiesel, specialty fats & R&D.",c:"industrial",lat:5.0319,lng:118.1219},
+  {n:"POIC Tawau",d:"Integrated palm oil and aquaculture industrial park. Deep-sea port access, southern Sabah.",c:"industrial",lat:4.2440,lng:117.8870},
+  {n:"Sipitang Oil & Gas Industrial Park (SOGIP)",d:"Gas processing and LNG industrial zone. PETRONAS pipeline corridor, west Sabah.",c:"industrial",lat:5.0845,lng:115.5593},
+  {n:"Kota Belud Agro-Industrial Park",d:"Agro-food processing zone – paddy, buffalo milk & tropical fruits. Sabah Food Valley.",c:"industrial",lat:6.3467,lng:116.4317},
+  {n:"KKIP Halal Food Zone",d:"JAKIM-certified halal food manufacturing and processing hub within KKIP, Kota Kinabalu.",c:"industrial",lat:5.9640,lng:116.0550},
+  {n:"Sandakan Industrial Estate",d:"Light to medium manufacturing zone. Plywood, furniture, seafood processing.",c:"industrial",lat:5.8300,lng:118.0945},
+  {n:"Tawau Cocoa & Palm Downstream Zone",d:"Cocoa processing and palm oil downstream corridor, eastern Sabah.",c:"industrial",lat:4.2523,lng:117.8880},
+  {n:"Kimanis Oil & Gas Terminal",d:"Gas offtake terminal and LNG processing hub. PETRONAS Sabah-Sarawak Gas Pipeline node.",c:"industrial",lat:5.6200,lng:115.8700},
+  {n:"Kota Marudu Agro-Processing Hub",d:"Northern Sabah agro-processing centre for rubber, paddy & highland vegetables.",c:"industrial",lat:6.1833,lng:116.8333},
+
+  /* ── UNIVERSITIES (7) ── */
+  {n:"Universiti Malaysia Sabah (UMS)",d:"Sabah's flagship public research university. Marine science, forestry & sustainable development.",c:"university",lat:6.0367,lng:116.1245,img:"https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?w=600&q=75"},
+  {n:"Universiti Teknologi MARA Sabah (UiTM)",d:"UiTM Sabah campus, Kota Kinabalu. Business, engineering & applied sciences.",c:"university",lat:5.9563,lng:116.0703},
+  {n:"University College Sabah Foundation (UCSF)",d:"Technical & vocational higher learning. Industry-linked programmes, Kota Kinabalu.",c:"university",lat:6.0116,lng:116.1028},
+  {n:"Politeknik Kota Kinabalu",d:"Polytechnic focusing on engineering, hospitality & ICT. TEVT hub for Sabah industries.",c:"university",lat:5.9600,lng:116.0750},
+  {n:"Universiti Sabah Malaysia (USM) Kota Kinabalu",d:"Medical and health sciences campus affiliated with USM Penang.",c:"university",lat:5.9780,lng:116.0780},
+  {n:"Kolej Vokasional Sandakan",d:"Vocational college for timber, marine & agro-technology industries, Sandakan.",c:"university",lat:5.8350,lng:118.1100},
+  {n:"Institut Teknologi Sabah (ITS)",d:"Technical skills institute. Electronics, mechanical engineering & ICT programmes.",c:"university",lat:5.9830,lng:116.0610},
+
+  /* ── BORDER / ENTRY POINTS (5) ── */
+  {n:"Checkpoint Serudong (MY-ID)",d:"Land & sea border checkpoint on Sebatik Island. Malaysia–Indonesia bilateral crossing.",c:"border_crossing",lat:4.1588,lng:117.8424},
+  {n:"Tawau–Nunukan Ferry (MY-ID)",d:"Regular passenger ferry crossing between Tawau and Nunukan, North Kalimantan, Indonesia.",c:"border_crossing",lat:4.2467,lng:117.8980},
+  {n:"Semporna–Tawi-Tawi Crossing (MY-PH)",d:"Marine border point. Cross-border connectivity with Tawi-Tawi Province, Philippines.",c:"border_crossing",lat:4.4813,lng:118.6200},
+  {n:"Kudat–Philippines Maritime Zone",d:"Northern Sabah maritime zone. Seasonal fishing & trade passage with Palawan, Philippines.",c:"border_crossing",lat:6.9200,lng:116.8300},
+  {n:"Pulau Sebatik (MY-ID) Border Zone",d:"Divided island border – northern half Malaysia (Sabah), southern half Indonesia. Unique land boundary.",c:"border_crossing",lat:4.0833,lng:117.8333},
+
+  /* ── SHOPPING (5) ── */
+  {n:"KK City Mall Duty Free",d:"Premium duty-free shopping, Kota Kinabalu city centre. Liquor, tobacco & electronics.",c:"shopping",lat:5.9897,lng:116.0710,type:"Duty Free & Retail",img:"https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=600&q=75"},
+  {n:"Imago Shopping Mall",d:"Kota Kinabalu's largest mall. Duty-free outlets, Parkson & international F&B.",c:"shopping",lat:5.9739,lng:116.0589,type:"Shopping Mall"},
+  {n:"Suria Sabah Shopping Mall",d:"Central KK waterfront mall. Duty-free shops with views of South China Sea.",c:"shopping",lat:5.9849,lng:116.0740,type:"Duty Free & Retail",img:"https://images.unsplash.com/photo-1519996529931-28324d5a630e?w=600&q=75"},
+  {n:"Gaya Street Sunday Market",d:"Iconic weekly street market, Kota Kinabalu. Local crafts, native produce & Sabahan culture.",c:"shopping",lat:5.9881,lng:116.0729,type:"Cultural Market"},
+  {n:"Sandakan Harbour Square",d:"Waterfront lifestyle mall & duty-free zone. Seafood restaurants & local crafts, Sandakan.",c:"shopping",lat:5.8392,lng:118.1195,type:"Duty Free & Retail"},
+
+  /* ── TOURISM (7) ── */
+  {n:"Kinabalu Park",d:"UNESCO World Heritage Site. Mt Kinabalu 4,095m — SE Asia's highest peak. Rich in endemic flora.",c:"tourism",lat:6.0000,lng:116.5499,type:"Heritage Tourism",recog:"UNESCO World Heritage Site – Kinabalu Park (2000)",img:"https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=75"},
+  {n:"Sipadan Island Marine Park",d:"World's #1 dive site (Condé Nast). UNESCO-proposed. Barracuda tornado, hammerheads & turtles.",c:"tourism",lat:4.1145,lng:118.6285,type:"Marine Tourism",recog:"UNESCO Tentative World Heritage – Semporna Archipelago",remark:"120 diver/day permit limit — book months in advance.",img:"https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=600&q=75"},
+  {n:"Sepilok Orangutan Rehabilitation Centre",d:"World-renowned orangutan rehabilitation & research centre. Open feeding platform, Sandakan.",c:"tourism",lat:5.8603,lng:117.9367,type:"Ecotourism",recog:"Ramsar Wetland – Kinabatangan Floodplain",img:"https://images.unsplash.com/photo-1503256207526-0d5523f31580?w=600&q=75"},
+  {n:"Kinabatangan River Corridor",d:"Sabah's longest river. Proboscis monkeys, pygmy elephants, hornbills & night river safaris.",c:"tourism",lat:5.4167,lng:118.0000,type:"Ecotourism",recog:"Ramsar Wetland – Lower Kinabatangan",img:"https://images.unsplash.com/photo-1448375240586-882707db888b?w=600&q=75"},
+  {n:"Turtle Islands Park",d:"World-famous green & hawksbill turtle nesting sanctuary. Sulu Sea, north of Sandakan.",c:"tourism",lat:6.1000,lng:118.9667,type:"Ecotourism",recog:"Protected Marine Park – Turtle Islands",img:"https://images.unsplash.com/photo-1503256207526-0d5523f31580?w=600&q=75"},
+  {n:"Mari Mari Cultural Village",d:"Award-winning Sabah indigenous cultural experience. 5 tribal longhouses — Kadazan, Bajau, Murut, Lundayeh, Rungus.",c:"tourism",lat:6.0100,lng:116.1830,type:"Cultural Tourism",img:"https://images.unsplash.com/photo-1585468274952-66591eb14165?w=600&q=75"},
+  {n:"Tip of Borneo (Tanjung Simpang Mengayau)",d:"Northernmost point of Borneo. Lighthouse, sunset panoramas & pristine beach at Kudat.",c:"tourism",lat:7.0736,lng:116.8261,type:"Nature Tourism",img:"https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=75"},
+
+  /* ── NATURE (7) ── */
+  {n:"Kinabalu Park & Crocker Range",d:"UNESCO World Heritage. Mt Kinabalu, endemic Rafflesia, nepenthes & cloud forest hotspot.",c:"nature",lat:6.0000,lng:116.5499,type:"Ecotourism – UNESCO WH",recog:"UNESCO World Heritage Site – Kinabalu Park (2000)",img:"https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=75"},
+  {n:"Danum Valley Conservation Area",d:"One of SE Asia's last primary lowland dipterocarp rainforests. Pygmy elephants, sun bears, clouded leopard.",c:"nature",lat:4.9667,lng:117.8000,type:"Ecotourism – Primary Forest",recog:"IUCN Category I – Strict Nature Reserve",img:"https://images.unsplash.com/photo-1448375240586-882707db888b?w=600&q=75"},
+  {n:"Maliau Basin Conservation Area",d:"Sabah's 'Lost World' — 390km² virtually untouched primary rainforest basin.",c:"nature",lat:4.7500,lng:116.9167,type:"Ecotourism – Wilderness",img:"https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=600&q=75"},
+  {n:"Tunku Abdul Rahman Marine Park",d:"5-island marine park off Kota Kinabalu — Gaya, Sapi, Manukan, Mamutik, Sulug.",c:"nature",lat:5.9980,lng:115.9700,type:"Marine Ecotourism",recog:"Marine Protected Area – TAR Marine Park",img:"https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=600&q=75"},
+  {n:"Tabin Wildlife Reserve",d:"Largest wildlife reserve in Sabah. Sumatran rhino sanctuary & Borneo endemic species.",c:"nature",lat:5.2000,lng:118.6667,type:"Ecotourism – Wildlife",img:"https://images.unsplash.com/photo-1503256207526-0d5523f31580?w=600&q=75"},
+  {n:"Crocker Range Biosphere Reserve",d:"UNESCO Man & Biosphere Reserve. Highland biodiversity & indigenous Kadazan-Dusun ancestral lands.",c:"nature",lat:5.7167,lng:116.3833,type:"Ecotourism – Biosphere",recog:"UNESCO MAB Biosphere Reserve – Crocker Range (2014)",img:"https://images.unsplash.com/photo-1448375240586-882707db888b?w=600&q=75"},
+  {n:"Turtle Islands Marine Park",d:"Dedicated turtle nesting & conservation sanctuary. Green & hawksbill turtles nest year-round.",c:"nature",lat:6.0833,lng:118.8500,type:"Marine Conservation",recog:"Protected Marine Park – Pulau Penyu",img:"https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=600&q=75"},
+];
+
+/* CATEGORY CONFIG */
+const CATS={
+  border_crossing:{label:"Entry Points",color:"#E53935",emoji:"⛩️"},
+  industrial:     {label:"Industrial Parks",color:"#7E57C2",emoji:"🏭"},
+  university:     {label:"Universities / HLI",color:"#43A047",emoji:"🎓"},
+  airport:        {label:"Airports",color:"#1E88E5",emoji:"✈️"},
+  port:           {label:"Ports & Jetties",color:"#00ACC1",emoji:"⚓"},
+  shopping:       {label:"Duty Free / Shopping",color:"#C9910E",emoji:"🛍️"},
+  tourism:        {label:"Tourism Sites",color:"#C4622D",emoji:"🌟"},
+  nature:         {label:"Nature & Geoparks",color:"#558B2F",emoji:"🌿"},
+};
+
+/* INDUSTRIAL PARK POLYGONS (from QGIS export) */
+const INDPARK_GEOJSON = {"type":"FeatureCollection","name":"SabahIndustrialParks","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:OGC:1.3:CRS84"}},"features":[
+  {"type":"Feature","properties":{"Name":"Kota Kinabalu Industrial Park (KKIP) Phase 1","Descriptio":"Premier industrial park, Sabah","area_sqkm":7.2,"area_ha":720,"size_src":"SABAH_BIMP"},"geometry":{"type":"MultiPolygon","coordinates":[[[[116.050,5.960],[116.085,5.960],[116.085,5.988],[116.050,5.988],[116.050,5.960]]]]}},
+  {"type":"Feature","properties":{"Name":"KKIP Phase 2 & 3","Descriptio":"Expansion zones, KKIP","area_sqkm":10.1,"area_ha":1010,"size_src":"SABAH_BIMP"},"geometry":{"type":"MultiPolygon","coordinates":[[[[116.085,5.955],[116.120,5.955],[116.120,5.990],[116.085,5.990],[116.085,5.955]]]]}},
+  {"type":"Feature","properties":{"Name":"POIC Lahad Datu Phase 1","Descriptio":"Palm Oil Industrial Cluster, Lahad Datu","area_sqkm":12.5,"area_ha":1250,"size_src":"SABAH_BIMP"},"geometry":{"type":"MultiPolygon","coordinates":[[[[118.090,5.020],[118.150,5.020],[118.150,5.050],[118.090,5.050],[118.090,5.020]]]]}},
+  {"type":"Feature","properties":{"Name":"POIC Lahad Datu Phase 2 (Future)","Descriptio":"Future expansion, POIC Lahad Datu","area_sqkm":18.0,"area_ha":1800,"size_src":"SABAH_BIMP"},"geometry":{"type":"MultiPolygon","coordinates":[[[[118.050,4.990],[118.090,4.990],[118.090,5.020],[118.050,5.020],[118.050,4.990]]]]}},
+  {"type":"Feature","properties":{"Name":"POIC Tawau","Descriptio":"Palm oil and aquaculture industrial park, Tawau","area_sqkm":8.4,"area_ha":840,"size_src":"SABAH_BIMP"},"geometry":{"type":"MultiPolygon","coordinates":[[[[117.870,4.230],[117.910,4.230],[117.910,4.260],[117.870,4.260],[117.870,4.230]]]]}},
+  {"type":"Feature","properties":{"Name":"Sipitang Oil & Gas Industrial Park (SOGIP)","Descriptio":"Gas processing hub, west Sabah","area_sqkm":5.2,"area_ha":520,"size_src":"SABAH_BIMP"},"geometry":{"type":"MultiPolygon","coordinates":[[[[115.540,5.070],[115.580,5.070],[115.580,5.100],[115.540,5.100],[115.540,5.070]]]]}},
+  {"type":"Feature","properties":{"Name":"Sabah Agro-Industrial Precinct Kota Belud","Descriptio":"Agro-food processing, Kota Belud","area_sqkm":4.8,"area_ha":480,"size_src":"SABAH_BIMP"},"geometry":{"type":"MultiPolygon","coordinates":[[[[116.420,6.330],[116.455,6.330],[116.455,6.360],[116.420,6.360],[116.420,6.330]]]]}},
+  {"type":"Feature","properties":{"Name":"Sandakan Industrial Estate","Descriptio":"Light & medium manufacturing, Sandakan","area_sqkm":3.5,"area_ha":350,"size_src":"SABAH_BIMP"},"geometry":{"type":"MultiPolygon","coordinates":[[[[118.080,5.825],[118.110,5.825],[118.110,5.850],[118.080,5.850],[118.080,5.825]]]]}}
+]};
+
+/* STATE */
+let map, baseLayers={}, catGrps={}, panelOpen=true, curMode='investor';
+let indParkLayer=null, indParkVisible=true;
+let dosmDistrictLayer=null, dosmDistrictVisible=true, dosmDistrictLoaded=false;
+let popChoropleth=null, popChoroplethVisible=false, popData={};  /* keyed by normalised district name */
+const vis={};
+const TCATS=['tourism','nature','shopping'];  /* categories shown in tourism panel */
+let aFilter='all', aRec='';
+Object.keys(CATS).forEach(k=>vis[k]=true);
+
+/* INIT MAP */
+function initMap(){
+  map=L.map('map',{center:[5.5,116.5],zoom:7,zoomControl:false,minZoom:5,maxZoom:19});
+  // Fit to Sabah on first load
+  map.fitBounds([[3.8,114.0],[7.4,119.3]],{padding:[20,20]});
+  // Create custom Leaflet panes for z-ordering control
+  map.createPane('bezPane');        map.getPane('bezPane').style.zIndex = 401;
+  map.createPane('boundaryPane');   map.getPane('boundaryPane').style.zIndex = 403;
+  map.createPane('railwayPane');    map.getPane('railwayPane').style.zIndex = 405;
+  map.createPane('indParkPane');    map.getPane('indParkPane').style.zIndex = 407;
+  // BEZ polygons: no pointer events (allow clicks to reach markers underneath)
+  map.getPane('bezPane').style.pointerEvents = 'none';
+  // Railway/boundary panes: only respond to actual line clicks (not fill)
+  map.getPane('railwayPane').style.pointerEvents = 'visibleStroke';
+  map.getPane('indParkPane').style.pointerEvents = 'auto';
+  L.control.zoom({position:'topright'}).addTo(map);
+  L.control.scale({position:'bottomright',metric:true,imperial:false}).addTo(map);
+  baseLayers.osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19});
+  baseLayers.satellite=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19});
+  baseLayers.dark=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19});
+  baseLayers.topo=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17});
+  baseLayers.osm.addTo(map);
+
+  map.on('mousemove',e=>document.getElementById('coordLive').textContent=`${e.latlng.lat.toFixed(5)}°N, ${e.latlng.lng.toFixed(5)}°E`);
+  Object.keys(CATS).forEach(cat=>{
+    const g=L.layerGroup();
+    F.filter(f=>f.c===cat).forEach(f=>mkMkr(f).addTo(g));
+    catGrps[cat]=g; g.addTo(map);
+  });
+  initGeoLayers();
+  setTimeout(()=>{
+    document.getElementById('mloader').classList.add('done');
+    const total=F.length+INDPARK_GEOJSON.features.length;
+    const el=document.getElementById('totalFeatureCount');
+    if(el) el.textContent=total+'+';
+  },400);
+}
+
+function initGeoLayers(){
+  /* ── Industrial Park Polygons ── */
+  indParkLayer=L.geoJSON(INDPARK_GEOJSON,{
+    style:function(feature){
+      const isFuture=feature.properties.Name.includes('Future');
+      const isPort=feature.properties.Name.includes('Port')||feature.properties.Name.includes('POIC');
+      return {
+        color:'#7E57C2',weight:1.8,opacity:0.9,
+        fillColor:isFuture?'#B39DDB':isPort?'#26A69A':'#9575CD',
+        fillOpacity:isFuture?0.12:0.22,
+        dashArray:isFuture?'6,4':null,
+        pane:'indParkPane'
+      };
+    },
+    onEachFeature:function(feature,layer){
+      const nm=feature.properties.Name;
+      const isFuture=nm.includes('Future');
+      const sqkm=feature.properties.area_sqkm||0;
+      const ha=feature.properties.area_ha||0;
+      const acres=Math.round(ha*2.471);
+      const isPort=nm.includes('Port')||nm.includes('POIC');
+      const areaColor=isFuture?'#B39DDB':isPort?'#26A69A':'#9575CD';
+      layer.bindPopup(
+        `<span class='pem'>🏭</span><div class='ptt'>${nm}</div>`+
+        `<div class='pcat'>Industrial Park · Polygon Area</div>`+
+        `<div class='psep'></div>`+
+        `<div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:8px'>`+
+          `<div style='background:rgba(149,117,205,0.08);border:1px solid rgba(149,117,205,0.22);border-radius:5px;padding:5px 7px;text-align:center'><div style='font-family:var(--serif);font-size:1.05rem;font-weight:700;color:${areaColor};line-height:1'>${sqkm}</div><div style='font-size:0.5rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px'>km²</div></div>`+
+          `<div style='background:rgba(149,117,205,0.08);border:1px solid rgba(149,117,205,0.22);border-radius:5px;padding:5px 7px;text-align:center'><div style='font-family:var(--serif);font-size:1.05rem;font-weight:700;color:${areaColor};line-height:1'>${ha}</div><div style='font-size:0.5rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px'>ha</div></div>`+
+          `<div style='background:rgba(149,117,205,0.08);border:1px solid rgba(149,117,205,0.22);border-radius:5px;padding:5px 7px;text-align:center'><div style='font-family:var(--serif);font-size:1.05rem;font-weight:700;color:${areaColor};line-height:1'>${acres}</div><div style='font-size:0.5rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px'>acres</div></div>`+
+        `</div>`+
+        `<div class='pdesc'>${isFuture?'Planned / Future expansion zone within the Sabah KKIP industrial park.':'Designated industrial park within the Sabah/BIMP-EAGA economic corridor.'}</div>`,
+        {maxWidth:300}
+      );
+      layer.on('mouseover',function(){layer.setStyle({fillOpacity:isFuture?0.22:0.38,weight:2.5});});
+      layer.on('mouseout',function(){indParkLayer.resetStyle(layer);});
+    }
+  }).addTo(map);
+
+  /* ── DOSM Official Sabah District Boundaries (live fetch) ── */
+  loadDOSMDistricts();
+}
+
+function loadDOSMDistricts(){
+  if(dosmDistrictLoaded) return;
+  const STATUS_ID='dosm-status';
+  const updateStatus=(msg,col)=>{
+    const el=document.getElementById(STATUS_ID);
+    if(el){el.textContent=msg;el.style.color=col||'var(--muted)';}
+  };
+  updateStatus('⏳ Loading DOSM district data…');
+
+  // jsdelivr CDN mirrors GitHub raw — CORS-safe, fast
+  const URL='https://cdn.jsdelivr.net/gh/dosm-malaysia/data-open@main/datasets/geodata/administrative_2_district.geojson';
+
+  fetch(URL)
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(data=>{
+      // Filter to Sabah only (code_state === 12)
+      const sabahFeatures = data.features.filter(f=>
+        f.properties.code_state===12 || f.properties.code_state==='12'
+      );
+      if(!sabahFeatures.length) throw new Error('No Sabah features found');
+
+      dosmDistrictLayer = L.geoJSON({type:'FeatureCollection',features:sabahFeatures},{
+        style: function(){
+          return {
+            color:'#C9910E', weight:1.2, opacity:0.7,
+            fillColor:'#C9910E', fillOpacity:0.05,
+            dashArray:'3,4',
+            pane:'bezPane'
+          };
+        },
+        onEachFeature: function(feature, layer){
+          const p = feature.properties;
+          const name = p.district || p.name || p.NAME || p.daerah || 'District';
+          const pop = p.population ? ' · Pop: '+Number(p.population).toLocaleString() : '';
+          layer.bindTooltip(`<b>${name}</b><br><span style='font-size:0.7rem;color:#888'>Sabah District${pop}</span>`,
+            {sticky:true, direction:'top', offset:[0,-4]});
+          layer.bindPopup(
+            `<span class='pem'>🗺</span><div class='ptt'>${name}</div>`+
+            `<div class='pcat'>Sabah Administrative District · Source: DOSM GeoHub</div>`+
+            `<div class='psep'></div>`+
+            `<div style='font-size:0.65rem;color:var(--muted);line-height:1.7'>`+
+            `<div>📌 <b style='color:var(--cream)'>District:</b> ${name}</div>`+
+            (p.state?`<div>🏛 <b style='color:var(--cream)'>State:</b> ${p.state}</div>`:'') +
+            (p.code_district?`<div>🔢 <b style='color:var(--cream)'>Code:</b> ${p.code_district}</div>`:'') +
+            `<div style='margin-top:6px;font-size:0.58rem;opacity:0.6'>Data: DOSM data-open · CC-BY 4.0</div></div>`,
+            {maxWidth:260}
+          );
+          layer.on('mouseover', function(){ layer.setStyle({fillOpacity:0.15, weight:2, color:'#FFD54F'}); });
+          layer.on('mouseout', function(){ dosmDistrictLayer.resetStyle(layer); });
+        }
+      }).addTo(map);
+
+      dosmDistrictLoaded = true;
+      updateStatus('✅ DOSM districts loaded ('+sabahFeatures.length+')','#81C784');
+
+      // Update layer panel count if open
+      const cnt=document.getElementById('cnt-dosm-district');
+      if(cnt) cnt.textContent=sabahFeatures.length;
+
+      // Rebuild layer ctrl if panel is open
+      if(curMode==='layers') buildLayerCtrl();
+    })
+    .catch(err=>{
+      console.warn('DOSM fetch failed:',err);
+      updateStatus('⚠ DOSM data unavailable','#FF8A65');
+    });
+}
+
+function toggleDOSMDistrict(){
+  dosmDistrictVisible=!dosmDistrictVisible;
+  const t=document.getElementById('tog-dosm-district'),d=document.getElementById('dot-dosm-district');
+  if(dosmDistrictVisible){
+    if(dosmDistrictLayer) dosmDistrictLayer.addTo(map);
+    else loadDOSMDistricts();
+    if(t)t.classList.add('on');if(d)d.style.opacity='1';
+  } else {
+    if(dosmDistrictLayer) map.removeLayer(dosmDistrictLayer);
+    if(t)t.classList.remove('on');if(d)d.style.opacity='0.3';
+  }
+}
+
+/* ══ Population by District — DOSM OpenAPI ══
+   Endpoint: api.data.gov.my/data-catalogue
+   Dataset:  population_district (CC-BY 4.0)
+   Filter:   state=Sabah, date=2024, sex=overall, age=overall, ethnicity=overall
+*/
+function loadPopulationData(cb){
+  // Correct filter syntax: value@column, comma-separated
+  // population values are in thousands → multiply by 1000
+  const url='https://api.data.gov.my/data-catalogue?id=population_district'
+    +'&filter=Sabah@state,overall@sex,overall@age,overall@ethnicity'
+    +'&sort=-date&limit=50';
+
+  fetch(url)
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(rows=>{
+      // API returns a raw array (no wrapper)
+      if(!Array.isArray(rows)||!rows.length) throw new Error('Empty response');
+
+      // Take latest year only
+      rows.sort((a,b)=>b.date.localeCompare(a.date));
+      const latestDate = rows[0].date;
+      const latestYear = latestDate.substring(0,4);
+
+      popData = {};
+      rows.forEach(r=>{
+        if(r.date !== latestDate) return;   // latest year only
+        const key = normDistrict(r.district||'');
+        if(key) popData[key] = {
+          population: Math.round((r.population||0) * 1000),  // stored in thousands
+          date: latestYear,
+          district: r.district||key
+        };
+      });
+
+      console.log('[DOSM] Population loaded:',Object.keys(popData).length,'districts, year:',latestYear,popData);
+      if(cb) cb();
+    })
+    .catch(err=>{
+      console.warn('[DOSM] Population fetch failed:',err.message);
+      if(cb) cb(true);
+    });
+}
+
+function normDistrict(s){
+  return (s||'').toLowerCase()
+    .replace(/^daerah\s+/,'')
+    .replace(/\bwd\b/,'')
+    .replace(/[^a-z0-9 ]/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+function matchPopData(featureProps){
+  // Try multiple property keys the GeoJSON might use
+  const candidates = [
+    featureProps.district, featureProps.name, featureProps.NAME,
+    featureProps.daerah, featureProps.DAERAH, featureProps.ADM2_EN
+  ].filter(Boolean).map(normDistrict);
+
+  for(const key of candidates){
+    if(popData[key]) return popData[key];
+    // Partial match — find popData key that contains or is contained
+    const match = Object.entries(popData).find(([k])=>
+      k.includes(key) || key.includes(k)
+    );
+    if(match) return match[1];
+  }
+  return null;
+}
+
+function buildPopChoropleth(geoData){
+  if(popChoropleth){ map.removeLayer(popChoropleth); popChoropleth=null; }
+
+  const vals=Object.values(popData).map(d=>d.population).filter(v=>v>0);
+  if(!vals.length) return;
+  const maxPop=Math.max(...vals);
+  const minPop=Math.min(...vals);
+
+  function popColor(pop){
+    if(!pop||pop===0) return '#555';
+    const t=(pop-minPop)/(maxPop-minPop||1);
+    // Gold → deep teal gradient
+    const r=Math.round(201 - t*160);
+    const g=Math.round(145 + t*60);
+    const b=Math.round(14  + t*130);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  popChoropleth = L.geoJSON(geoData,{
+    style: function(feature){
+      const d = matchPopData(feature.properties);
+      const pop = d?d.population:0;
+      return {
+        color:'rgba(255,255,255,0.3)', weight:0.8,
+        fillColor: popColor(pop),
+        fillOpacity: pop?0.65:0.15,
+        pane:'bezPane'
+      };
+    },
+    onEachFeature: function(feature, layer){
+      const p=feature.properties;
+      const d = matchPopData(p);
+      const pop = d?Number(d.population).toLocaleString():'N/A';
+      const yr  = d?d.date:'–';
+      const dispName = p.district||p.name||p.NAME||p.daerah||'–';
+
+      layer.bindTooltip(
+        `<b>${dispName}</b><br>`
+        +`<span style='color:#81C784'>👥 ${pop}</span>`
+        +`<span style='font-size:0.7rem;color:#aaa'> people (${yr})</span>`,
+        {sticky:true, direction:'top', offset:[0,-4]}
+      );
+      layer.bindPopup(
+        `<span class='pem'>👥</span>`
+        +`<div class='ptt'>${dispName}</div>`
+        +`<div class='pcat'>District Population · Source: DOSM OpenAPI</div>`
+        +`<div class='psep'></div>`
+        +`<div style='display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px'>`
+        +`<div style='background:rgba(129,196,132,0.1);border:1px solid rgba(129,196,132,0.3);border-radius:6px;padding:7px;text-align:center'>`
+        +`<div style='font-family:var(--serif);font-size:1.15rem;font-weight:700;color:#81C784'>${pop}</div>`
+        +`<div style='font-size:0.55rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:2px'>Population (${yr})</div>`
+        +`</div>`
+        +`<div style='background:rgba(201,145,14,0.08);border:1px solid rgba(201,145,14,0.2);border-radius:6px;padding:7px;text-align:center'>`
+        +`<div style='font-family:var(--serif);font-size:1.1rem;font-weight:700;color:var(--gold2)'>Sabah</div>`
+        +`<div style='font-size:0.55rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:2px'>State</div>`
+        +`</div></div>`
+        +`<div style='font-size:0.63rem;color:rgba(26,46,26,0.65);line-height:1.7'>`
+        +`<div>📌 <b style='color:var(--cream)'>District:</b> ${dispName}</div>`
+        +`<div>📊 <b style='color:var(--cream)'>Dataset:</b> population_district (DOSM)</div>`
+        +`<div style='margin-top:5px;font-size:0.56rem;opacity:0.5'>Data: CC-BY 4.0 · open.dosm.gov.my</div>`
+        +`</div>`,
+        {maxWidth:270}
+      );
+
+      const origStyle=()=>popChoropleth&&popChoropleth.resetStyle(layer);
+      layer.on('mouseover',()=>layer.setStyle({weight:2,color:'#fff',fillOpacity:0.85}));
+      layer.on('mouseout', origStyle);
+    }
+  }).addTo(map);
+
+  // Add a population legend chip to the map
+  updatePopLegend(minPop, maxPop);
+}
+
+function updatePopLegend(minPop,maxPop){
+  let leg=document.getElementById('pop-legend');
+  if(!leg){
+    leg=document.createElement('div');
+    leg.id='pop-legend';
+    leg.style.cssText='position:absolute;bottom:36px;left:12px;z-index:900;background:rgba(26,46,26,0.88);'
+      +'border:1px solid rgba(201,145,14,0.3);border-radius:8px;padding:7px 10px;font-size:0.6rem;'
+      +'color:var(--cream);pointer-events:none;backdrop-filter:blur(4px);min-width:140px';
+    document.getElementById('map').appendChild(leg);
+  }
+  const fmt=n=>n>=1000000?(n/1000000).toFixed(1)+'M':n>=1000?Math.round(n/1000)+'k':n;
+  leg.innerHTML=`<div style='font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;font-size:0.58rem;color:var(--gold2)'>👥 Population (2024)</div>`
+    +`<div style='display:flex;align-items:center;gap:5px'>`
+    +`<span style='font-size:0.58rem;opacity:0.7'>${fmt(minPop)}</span>`
+    +`<div style='flex:1;height:7px;border-radius:4px;background:linear-gradient(to right,rgb(201,145,14),rgb(41,185,144))'></div>`
+    +`<span style='font-size:0.58rem;opacity:0.7'>${fmt(maxPop)}</span>`
+    +`</div><div style='text-align:center;font-size:0.55rem;opacity:0.5;margin-top:3px'>DOSM OpenAPI · CC-BY 4.0</div>`;
+}
+
+function togglePopChoropleth(){
+  popChoroplethVisible=!popChoroplethVisible;
+  const t=document.getElementById('tog-pop'),d=document.getElementById('dot-pop');
+  const leg=document.getElementById('pop-legend');
+
+  if(popChoroplethVisible){
+    // Need both geo + pop data
+    const activate=(geoData)=>{
+      if(!Object.keys(popData).length){
+        const st=document.getElementById('pop-status');
+        if(st) st.textContent='⏳ Fetching population data…';
+        loadPopulationData((err)=>{
+          if(err){ if(st) st.textContent='⚠ Population data unavailable'; return; }
+          buildPopChoropleth(geoData);
+          if(st) st.textContent='✅ DOSM population data loaded (2024)';
+        });
+      } else {
+        buildPopChoropleth(geoData);
+      }
+    };
+
+    if(dosmDistrictLoaded && dosmDistrictLayer){
+      // Extract raw GeoJSON features from existing layer
+      const features=[]; dosmDistrictLayer.eachLayer(l=>features.push(l.feature));
+      activate({type:'FeatureCollection',features});
+    } else {
+      // Fetch geodata first
+      const st=document.getElementById('pop-status');
+      if(st) st.textContent='⏳ Fetching district boundaries…';
+      fetch('https://cdn.jsdelivr.net/gh/dosm-malaysia/data-open@main/datasets/geodata/administrative_2_district.geojson')
+        .then(r=>r.json())
+        .then(data=>{
+          const sabahFeatures=data.features.filter(f=>f.properties.code_state===12||f.properties.code_state==='12');
+          activate({type:'FeatureCollection',features:sabahFeatures});
+        })
+        .catch(()=>{ if(st) st.textContent='⚠ Boundary data unavailable'; });
+    }
+    if(t)t.classList.add('on'); if(d)d.style.opacity='1';
+    if(leg) leg.style.display='';
+  } else {
+    if(popChoropleth){ map.removeLayer(popChoropleth); popChoropleth=null; }
+    if(t)t.classList.remove('on'); if(d)d.style.opacity='0.3';
+    if(leg) leg.style.display='none';
+  }
+}
+
+function mkMkr(f){
+  const C=CATS[f.c];
+  const hasCrown=f.recog&&(f.recog.includes('UNESCO')||f.recog.includes('Geopark')||f.recog.includes('Warisan'));
+  const crown=hasCrown?`<text x='15' y='5.5' font-size='7' text-anchor='middle' fill='${C.color}' font-family='sans-serif'>★</text>`:'';
+  const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='30' height='38' viewBox='0 0 30 38'>
+    <defs><filter id='g'><feDropShadow dx='0' dy='3' stdDeviation='3.5' flood-color='${C.color}' flood-opacity='0.5'/></filter></defs>
+    <path d='M15 0C6.7 0 0 6.7 0 15c0 11.3 15 23 15 23S30 26.3 30 15 23.3 0 15 0z' fill='${C.color}' filter='url(#g)' opacity='0.93'/>
+    <circle cx='15' cy='15' r='8' fill='rgba(255,255,255,0.93)'/><text x='15' y='19.5' font-size='9.5' text-anchor='middle' font-family='sans-serif'>${C.emoji}</text>${crown}
+  </svg>`;
+  const icon=L.divIcon({html:svg,iconSize:[30,38],iconAnchor:[15,38],popupAnchor:[0,-42],className:''});
+  const m=L.marker([f.lat,f.lng],{icon});
+  const roiMap={border_crossing:'BIMP-EAGA gateway',port:'Trade gateway',airport:'Connectivity hub'};
+  const tourMap={nature:'Ecotourism 🌿',tourism:'Must-See 🌟',shopping:'Shopping 🛍️',airport:'Gateway ✈️',port:'Cruise ⚓'};
+  const recHtml=f.recog?`<div class='precog'><span>🏛</span><span class='precog-t'>${f.recog}</span></div>`:'';
+  const rmkHtml=f.remark?`<div class='prmk'>🔨 ${f.remark}</div>`:'';
+  const typHtml=f.type?`<div class='ptyp'>${f.type}</div>`:'';
+  const bdgHtml=roiMap[f.c]?`<div class='pbadge inv'>📈 ${roiMap[f.c]}</div>`:(tourMap[f.c]?`<div class='pbadge tour'>${tourMap[f.c]}</div>`:'');
+  m.bindPopup(`<span class='pem'>${C.emoji}</span><div class='ptt'>${f.n}</div><div class='pcat'>${C.label}</div>${typHtml}<div class='psep'></div><div class='pdesc'>${f.d}</div>${recHtml}${rmkHtml}${bdgHtml}<div class='pcoords'>${f.lat.toFixed(5)}°N, ${f.lng.toFixed(5)}°E</div>`,{maxWidth:285});
+  return m;
+}
+
+/* MODE */
+function setMode(m){
+  curMode=m;
+  document.querySelectorAll('.tb-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('btn-'+m).classList.add('active');
+  // Hide all panes (including cvia which uses display:none/flex)
+  document.querySelectorAll('.lp-pane').forEach(p=>{
+    p.classList.remove('on');
+    p.style.display='none';
+  });
+  const pane=document.getElementById('pane-'+m);
+  if(pane){
+    pane.style.display='flex';
+    pane.classList.add('on');
+  }
+  if(m==='layers') buildLayerCtrl();
+  if(m==='cvia') buildCVIAPane();
+  if(m==='krc') buildKRCPane();
+  if(m==='analytics') buildAnalytics();
+}
+function togglePanel(){
+  panelOpen=!panelOpen;
+  document.getElementById('lpanel').classList.toggle('slim',!panelOpen);
+  document.getElementById('lptog').textContent=panelOpen?'◀':'▶';
+}
+
+/* LAYER CONTROL */
+function buildLayerCtrl(){
+  const G={'🛤 Infrastructure':['airport','port'],'⚙️ Economic Zones':['industrial','shopping'],'🎓 Education':['university'],'🛂 Border Crossings':['border_crossing'],'🌿 Nature & Tourism':['nature','tourism']};
+  let h='';
+
+  /* Polygon Overlays group — Industrial Parks + DOSM Districts */
+  h+="<div class='lgg'><div class='lgh' onclick='this.classList.toggle(\"shut\");this.nextElementSibling.style.display=this.classList.contains(\"shut\")?\"none\":\"\"'><span>🗺 Polygon Overlays</span><span class='lga'>▾</span></div><div class='lgi'>";
+  h+="<div class='lgi-row' onclick='toggleIndPark()'><div class='lgdot' id='dot-indpark' style='background:#9575CD;border-radius:2px'></div><span class='lgnm'>🏭 Industrial Park Areas</span><span class='lgcnt'>" + INDPARK_GEOJSON.features.length + "</span><div class='lgtog on' id='tog-indpark'></div></div>";
+  h+="<div class='lgi-row' onclick='toggleDOSMDistrict()'>"
+   +"<div class='lgdot' id='dot-dosm-district' style='background:#C9910E;border-radius:2px;border:1px dashed rgba(201,145,14,0.8)'></div>"
+   +"<span class='lgnm'>🏛 Sabah Districts <span style=\"font-size:0.58rem;opacity:0.55\">(DOSM)</span></span>"
+   +"<span class='lgcnt' id='cnt-dosm-district'>" + (dosmDistrictLoaded&&dosmDistrictLayer?dosmDistrictLayer.getLayers().length:'…') + "</span>"
+   +"<div class='lgtog on' id='tog-dosm-district'></div>"
+   +"</div>"
+   +"<div id='dosm-status' style='font-size:0.58rem;color:var(--muted);padding:2px 8px 6px 28px;line-height:1.5'>"
+   +(dosmDistrictLoaded?'✅ Loaded · Source: DOSM GeoHub':'⏳ Fetching from DOSM GeoHub…')
+   +"</div>"
+   +"<div class='lgi-row' onclick='togglePopChoropleth()'>"
+   +"<div class='lgdot' id='dot-pop' style='background:linear-gradient(135deg,#C9910E,#29B990);border-radius:2px;opacity:0.3'></div>"
+   +"<span class='lgnm'>👥 Population by District <span style=\"font-size:0.58rem;opacity:0.55\">(DOSM)</span></span>"
+   +"<span class='lgcnt' id='cnt-pop'>" + Object.keys(popData).length + "</span>"
+   +"<div class='lgtog' id='tog-pop'></div>"
+   +"</div>"
+   +"<div id='pop-status' style='font-size:0.58rem;color:var(--muted);padding:2px 8px 6px 28px;line-height:1.5'>"
+   +(Object.keys(popData).length?'✅ Loaded · DOSM population_district':'Click to load from DOSM API')
+   +"</div>"
+   +"</div></div>";
+
+  Object.entries(G).forEach(([gn,cats])=>{
+    h+="<div class='lgg'><div class='lgh' onclick='this.classList.toggle(\"shut\");this.nextElementSibling.style.display=this.classList.contains(\"shut\")?\"none\":\"\"'><span>"+gn+"</span><span class='lga'>▾</span></div><div class='lgi'>";
+    cats.forEach(cat=>{const C=CATS[cat],cnt=F.filter(f=>f.c===cat).length;
+      h+="<div class='lgi-row' onclick='toggleCat(\""+cat+"\")' ><div class='lgdot' id='dot-"+cat+"' style='background:"+C.color+"'></div><span class='lgnm'>"+C.emoji+" "+C.label+"</span><span class='lgcnt'>"+cnt+"</span><div class='lgtog on' id='tog-"+cat+"'></div></div>";
+    });
+    h+='</div></div>';
+  });
+  document.getElementById('lyrGrps').innerHTML=h;
+}
+function toggleCat(cat){
+  vis[cat]=!vis[cat];
+  const t=document.getElementById('tog-'+cat),d=document.getElementById('dot-'+cat);
+  if(vis[cat]){catGrps[cat].addTo(map);t&&t.classList.add('on');if(d)d.style.opacity='1';}
+  else{map.removeLayer(catGrps[cat]);t&&t.classList.remove('on');if(d)d.style.opacity='0.25';}
+  document.getElementById('visCount').textContent=F.filter(f=>vis[f.c]).length;
+}
+
+/* TOGGLE INDUSTRIAL PARK POLYGONS */
+function toggleIndPark(){
+  indParkVisible=!indParkVisible;
+  const t=document.getElementById('tog-indpark'),d=document.getElementById('dot-indpark');
+  if(indParkVisible){indParkLayer.addTo(map);if(t)t.classList.add('on');if(d)d.style.opacity='1';}
+  else{map.removeLayer(indParkLayer);if(t)t.classList.remove('on');if(d)d.style.opacity='0.25';}
+  
+}
+
+
+/* FLY */
+
+/* ── BEZ Opacity Control ── */
+
+/* ── Legend Sync: dim rows when layer is off ── */
+
+
+/* ── Layer Stats Update ── */
+
+function flyGroup(cat){const pts=F.filter(f=>f.c===cat);if(!pts.length)return;map.fitBounds(L.latLngBounds(pts.map(p=>[p.lat,p.lng])),{padding:[70,70],maxZoom:12});}
+function flyCoords(lat,lng){map.flyTo([lat,lng],13,{duration:1.5});}
+
+/* ══ SEARCH ══ */
+let srchGrp = null;
+let searchActive = false;
+
+function clearSearch() {
+  const inp = document.getElementById('mapSrch');
+  if (inp) inp.value = '';
+  if (srchGrp) { map.removeLayer(srchGrp); srchGrp = null; }
+  Object.keys(CATS).forEach(cat => {
+    map.removeLayer(catGrps[cat]);
+    if (vis[cat]) catGrps[cat].addTo(map);
+  });
+  if (indParkVisible && indParkLayer && !map.hasLayer(indParkLayer)) indParkLayer.addTo(map);
+  searchActive = false;
+  document.getElementById('visCount').textContent = F.filter(f => vis[f.c]).length + ' features';
+}
+
+function doSearch(q){
+  q = q.trim().toLowerCase();
+  if(!q){ clearSearch(); return; }
+  let bounds=[], ptHits=0, ipHits=0;
+
+  // Point markers
+  F.forEach(f=>{
+    const hit=f.n.toLowerCase().includes(q)||f.d.toLowerCase().includes(q)||(f.type||'').toLowerCase().includes(q);
+    const g=catGrps[f.c];
+    if(hit){
+      g.eachLayer(l=>{ if(l.getLatLng&&Math.abs(l.getLatLng().lat-f.lat)<0.001){ l.openPopup(); bounds.push(l.getLatLng()); } });
+      ptHits++;
+    }
+  });
+
+  // Industrial park polygons
+  if(indParkLayer){
+    indParkLayer.eachLayer(sub=>{
+      const nm=(sub.feature.properties.Name||'').toLowerCase();
+      if(nm.includes(q)){
+        const b=sub.getBounds(); bounds.push(b.getNorthEast(),b.getSouthWest()); ipHits++;
+      }
+    });
+  }
+
+  const total=ptHits+ipHits;
+  if(bounds.length>0){
+    if(total===1) map.flyTo(bounds[0],14,{duration:1.2});
+    else map.fitBounds(L.latLngBounds(bounds),{padding:[60,60],maxZoom:13});
+  }
+  document.getElementById('visCount').textContent=total===0?'No results':total+' result'+(total>1?'s':'');
+}
+
+
+// Wire up after map is ready (window load, not DOMContentLoaded)
+
+
+/* BASEMAP */
+function setBasemap(n,btn){
+  document.querySelectorAll('.bmbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+  Object.values(baseLayers).forEach(l=>{try{map.removeLayer(l);}catch(e){}});
+  baseLayers[n].addTo(map);baseLayers[n].bringToBack();
+}
+
+/* LEGEND */
+function buildLegend(){
+  const catRows = Object.entries(CATS).map(([k,v])=>
+    `<div class='legrow' id='legrow-${k}' onclick='flyGroup("${k}")'><div class='legdot' style='background:${v.color}'></div><span class='leglbl'>${v.emoji} ${v.label}</span></div>`
+  ).join('');
+  const extraRows = [
+    `<div class='legrow' id='legrow-indpark' onclick='toggleIndPark()'><div class='legdot' style='background:#9575CD;border-radius:2px;border:1px solid #7E57C2'></div><span class='leglbl'>🏭 Industrial Parks</span></div>`,
+    `<div class='legrow' id='legrow-dosm' onclick='toggleDOSMDistrict()'><div class='legdot' style='background:transparent;border:1.5px dashed #C9910E;border-radius:2px'></div><span class='leglbl'>🏛 Districts <span style="font-size:0.6rem;opacity:0.6">(DOSM)</span></span></div>`,
+    `<div class='legrow' id='legrow-pop' onclick='togglePopChoropleth()'><div class='legdot' style='background:linear-gradient(135deg,#C9910E,#29B990);border-radius:2px'></div><span class='leglbl'>👥 Population <span style="font-size:0.6rem;opacity:0.6">(DOSM)</span></span></div>`,
+  ].join('');
+  document.getElementById('legBody').innerHTML = catRows + extraRows;
+}
+
+function buildTouristPanel(){
+  const chips=[{k:'all',l:'🌏 All',col:'#C9910E'},...TCATS.map(k=>({k,l:CATS[k].emoji+' '+CATS[k].label.split(' ')[0],col:CATS[k].color}))];
+  document.getElementById('tourFilters').innerHTML=chips.map(ch=>
+    `<div class='fchip ${ch.k==="all"?"on":""}' data-k='${ch.k}' style='background:${ch.k==="all"?ch.col+"22":"transparent"};border-color:${ch.col}44;color:${ch.col}' onclick='filterSpots("cat","${ch.k}",this)'>${ch.l}</div>`
+  ).join('');
+  renderSpots();
+}
+function filterSpots(kind,val,btn){
+  if(kind==='cat'){aFilter=val;aRec='';document.querySelectorAll('.fchip').forEach(c=>c.classList.remove('on'));if(btn)btn.classList.add('on');}
+  if(kind==='rec'){aRec=val;aFilter='all';document.querySelectorAll('.fchip').forEach(c=>c.classList.remove('on'));}
+  renderSpots();
+  if(val!=='all'&&kind==='cat')flyGroup(val);
+}
+function renderSpots(){
+  let spots=F.filter(f=>TCATS.includes(f.c));
+  if(aFilter!=='all')spots=spots.filter(f=>f.c===aFilter);
+  if(aRec){
+    if(aRec==='UNESCO')spots=spots.filter(f=>(f.recog||'').includes('UNESCO'));
+    else if(aRec==='Geopark')spots=spots.filter(f=>(f.recog||'').includes('Geopark')||(f.type||'').includes('Geopark'));
+    else if(aRec==='Heritage')spots=spots.filter(f=>(f.type||'').includes('Heritage'));
+    else if(aRec==='Under Construction')spots=spots.filter(f=>f.remark);
+  }
+  document.getElementById('tourGrid').innerHTML=spots.slice(0,28).map((f,i)=>{
+    const C=CATS[f.c];
+    const tgRec=f.recog?`<div class='stag rc'>🏛 Recognised</div>`:'';
+    const tgRmk=f.remark?`<div class='stag rm'>🔨 Active</div>`:'';
+    const recHtml=f.recog?`<div class='srcg'><span class='srcgi'>🏛</span><div class='srcgt'>${f.recog}</div></div>`:'';
+    const rmkHtml=f.remark?`<div class='srmk'>${f.remark}</div>`:'';
+    return `<div class='scard' onclick='flyCoords(${f.lat},${f.lng})' style='animation-delay:${i*0.035}s'>
+      <div class='simg' style='background:linear-gradient(135deg,${C.color}22,#e8f5f088)'>
+        <div class='sib'>${C.emoji}</div>
+        ${f.img?`<img src='${f.img}' loading='lazy' onload='this.classList.add("vis")' onerror='this.style.display="none"' alt='${f.n}'>`:''}
+        <div class='stagw'><div class='stag ct'>${C.label}</div>${tgRec}${tgRmk}</div>
+      </div>
+      <div class='sbdy'>
+        <div class='styp'>${f.type||C.label}</div>
+        <div class='snm'>${f.n}</div>
+        <div class='sdesc'>${f.d.substring(0,85)}${f.d.length>85?'…':''}</div>
+        ${recHtml}${rmkHtml}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* CHARTS */
+function buildCharts(){
+  Chart.defaults.color='rgba(26,46,26,0.5)';
+  Chart.defaults.borderColor='rgba(201,145,14,0.1)';
+  Chart.defaults.font.family='Noto Sans';Chart.defaults.font.size=10;
+
+  /* ── Feature Distribution: horizontal bar (fits narrow panel cleanly) ── */
+  const cats=Object.keys(CATS);
+  const distCounts=cats.map(c=>F.filter(f=>f.c===c).length);
+  const distLabels=cats.map(c=>CATS[c].emoji+' '+CATS[c].label);
+  const distColors=cats.map(c=>CATS[c].color);
+  new Chart(document.getElementById('donutChart'),{
+    type:'bar',
+    data:{
+      labels:distLabels,
+      datasets:[{
+        label:'Features',
+        data:distCounts,
+        backgroundColor:distColors.map(c=>c+'BB'),
+        borderColor:distColors,
+        borderWidth:1,
+        borderRadius:5,
+        borderSkipped:false
+      }]
+    },
+    options:{
+      indexAxis:'y',
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>ctx.parsed.x+' features'}}
+      },
+      scales:{
+        x:{beginAtZero:true,ticks:{stepSize:1,font:{size:8}},grid:{color:'rgba(201,145,14,0.08)'}},
+        y:{ticks:{font:{size:8.5},color:'rgba(26,46,26,0.65)'},grid:{display:false}}
+      }
+    }
+  });
+
+  /* ── Line: Sabah Visitor Trend 2018–2023 ── */
+  new Chart(document.getElementById('lineChart'),{
+    type:'line',
+    data:{labels:['2018','2019','2020','2021','2022','2023'],datasets:[
+      {label:'Sabah Total (M)',data:[4.1,4.3,0.92,0.45,2.5,4.1],borderColor:'#C9910E',backgroundColor:'rgba(201,145,14,0.08)',tension:0.4,fill:true,pointRadius:3,pointBackgroundColor:'#C9910E'},
+      {label:'International (M)',data:[1.8,2.1,0.22,0.02,0.6,1.7],borderColor:'#267A6A',backgroundColor:'rgba(38,122,106,0.06)',tension:0.4,fill:true,pointRadius:3,pointBackgroundColor:'#267A6A'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{boxWidth:8,padding:5,font:{size:8.5}}}},scales:{y:{beginAtZero:false,ticks:{callback:v=>v+'M'}}}}
+  });
+}
+
+/* ══════════════════════════════════════════
+   CVIA SITE SELECTION MODULE
+   KKIP Industrial Area, Kota Kinabalu, Sabah
+   Centroid: 5.974°N, 116.073°E
+══════════════════════════════════════════ */
+
+/* CVIA Sub-zone polygon definitions (derived from CVIA master boundary) */
+const CVIA_BOUNDARY = [[116.050,5.960],[116.085,5.960],[116.085,5.990],[116.120,5.990],[116.120,5.955],[116.050,5.955],[116.050,5.960]];
+
+const CVIA_ZONES = [
+  {
+    id:'Z1', code:'KKIP-Z1', name:'Electronics & E&E Manufacturing Zone',
+    center:[5.972, 116.062], area_ha:380,
+    color:'#7E57C2', fillColor:'#9575CD',
+    status:'avail', statusLabel:'Open',
+    floor_price:'RM 18–25/sqft',
+    notes:'Anchor zone for electronics, semiconductor testing & E&E assembly. Established tenants include Panasonic, Metronic & Marvell. Direct container port connectivity via KK Port.',
+    industries:['Electronics','Semiconductor','E&E Assembly','Precision Engineering'],
+    polygon:[[116.050,5.960],[116.070,5.960],[116.070,5.985],[116.050,5.985],[116.050,5.960]],
+    suit:{transport:88, utilities:92, labour:85, market:90, policy:95},
+    infra:[
+      {icon:'⚓',name:'KK International Port',dist:'8 km',time:'12 min'},
+      {icon:'✈️',name:'KK International Airport',dist:'6 km',time:'10 min'},
+      {icon:'🏭',name:'KKIP Utilities Hub',dist:'0.5 km',time:'2 min'},
+      {icon:'🎓',name:'Universiti Malaysia Sabah',dist:'4 km',time:'8 min'}
+    ]
+  },
+  {
+    id:'Z2', code:'KKIP-Z2', name:'Halal Food & Agro-Processing Zone',
+    center:[5.968, 116.075], area_ha:290,
+    color:'#43A047', fillColor:'#66BB6A',
+    status:'avail', statusLabel:'Open',
+    floor_price:'RM 12–18/sqft',
+    notes:'Dedicated halal-certified food processing and agro-industrial zone. JAKIM-certified facilities. Target sectors include seafood, palm oil derivatives, and tropical fruit processing.',
+    industries:['Halal Food','Seafood Processing','Agro-Processing','Cold Chain'],
+    polygon:[[116.070,5.960],[116.095,5.960],[116.095,5.985],[116.070,5.985],[116.070,5.960]],
+    suit:{transport:85, utilities:88, labour:82, market:87, policy:93},
+    infra:[
+      {icon:'⚓',name:'KK International Port',dist:'9 km',time:'14 min'},
+      {icon:'❄️',name:'Cold Chain Logistics Hub',dist:'1.2 km',time:'3 min'},
+      {icon:'🕌',name:'JAKIM Halal Certification Office',dist:'2 km',time:'5 min'},
+      {icon:'✈️',name:'KK International Airport',dist:'7 km',time:'11 min'}
+    ]
+  },
+  {
+    id:'Z3', code:'KKIP-Z3', name:'Oil & Gas Downstream Zone',
+    center:[5.975, 116.090], area_ha:240,
+    color:'#FF8F00', fillColor:'#FFA726',
+    status:'partial', statusLabel:'Partial',
+    floor_price:'RM 22–30/sqft',
+    notes:'Downstream oil & gas processing and petrochemical zone adjacent to Sapangar Bay Oil Terminal pipeline corridor. Key tenants include Petronas Chemicals and SKB Shutters.',
+    industries:['Oil & Gas Downstream','Petrochemicals','LNG Processing','Pipeline Services'],
+    polygon:[[116.095,5.960],[116.120,5.960],[116.120,5.985],[116.095,5.985],[116.095,5.960]],
+    suit:{transport:82, utilities:90, labour:80, market:85, policy:90},
+    infra:[
+      {icon:'🛢️',name:'Sapangar Bay Oil Terminal',dist:'3 km',time:'6 min'},
+      {icon:'⚓',name:'KK Industrial Port',dist:'5 km',time:'8 min'},
+      {icon:'⚡',name:'Grid Substation 132kV',dist:'0.8 km',time:'2 min'},
+      {icon:'✈️',name:'KK International Airport',dist:'8 km',time:'13 min'}
+    ]
+  },
+  {
+    id:'Z4', code:'KKIP-Z4', name:'Light Industrial & SME Zone',
+    center:[5.962, 116.085], area_ha:185,
+    color:'#1565C0', fillColor:'#1E88E5',
+    status:'avail', statusLabel:'Open',
+    floor_price:'RM 8–14/sqft',
+    notes:'Affordable light industrial lots for Sabahan SMEs and startups. Factory-ready units available from 5,000 sqft. Focus on furniture, plastics, packaging and light assembly.',
+    industries:['Light Manufacturing','Furniture','Packaging','SME Hub'],
+    polygon:[[116.050,5.955],[116.085,5.955],[116.085,5.960],[116.050,5.960],[116.050,5.955]],
+    suit:{transport:80, utilities:85, labour:88, market:82, policy:87},
+    infra:[
+      {icon:'🏭',name:'KKIP Shared Facilities Centre',dist:'1 km',time:'3 min'},
+      {icon:'⚓',name:'KK Port',dist:'10 km',time:'15 min'},
+      {icon:'🏥',name:'Queen Elizabeth Hospital II',dist:'12 km',time:'18 min'},
+      {icon:'🎓',name:'KK Polytechnic',dist:'5 km',time:'9 min'}
+    ]
+  },
+  {
+    id:'Z5', code:'KKIP-Z5', name:'Technology & Innovation Hub (Future)',
+    center:[5.978, 116.102], area_ha:220,
+    color:'#9575CD', fillColor:'#B39DDB',
+    status:'future', statusLabel:'Planned',
+    floor_price:'TBA',
+    notes:'Future Phase 4 expansion targeting digital economy, biotechnology, and advanced manufacturing. SEDIA is developing the master plan with MDEC and Sabah Digital Economy Corporation.',
+    industries:['Digital Economy','Biotechnology','Advanced Manufacturing','Data Centres'],
+    polygon:[[116.095,5.955],[116.125,5.955],[116.125,5.960],[116.095,5.960],[116.095,5.955]],
+    suit:{transport:78, utilities:80, labour:75, market:88, policy:92},
+    infra:[
+      {icon:'🌐',name:'Fibre Backbone Node',dist:'2 km',time:'4 min'},
+      {icon:'✈️',name:'KK International Airport',dist:'9 km',time:'14 min'},
+      {icon:'🎓',name:'Universiti Malaysia Sabah',dist:'6 km',time:'10 min'},
+      {icon:'⚡',name:'Planned Grid Upgrade (2026)',dist:'1.5 km',time:'3 min'}
+    ]
+  }
+];
+
+
+let cviaSubzoneLayer = null, cviaSubzonesVisible = false, cviaActiveTab = 'overview';
+
+/* Build CVIA overview content */
+function cviaOverviewHTML(){
+  return `
+    <div class='cv-sec'>Zone Summary</div>
+    ${CVIA_ZONES.map((z,i)=>`
+      <div class='parcel-card ${z.status}' onclick='flyToZone(${i})' style='animation-delay:${i*0.06}s'>
+        <div class='parcel-head'>
+          <div class='parcel-id'>${z.code}</div>
+          <div class='parcel-nm'>${z.name}</div>
+          <div class='parcel-status ${z.status}'>${z.statusLabel}</div>
+        </div>
+        <div class='parcel-meta'>
+          <div class='pmeta-item'><div class='pmeta-lbl'>Total Area</div><div class='pmeta-val'>${z.area_ha.toLocaleString()} ha</div></div>
+          <div class='pmeta-item'><div class='pmeta-lbl'>Status</div><div class='pmeta-val'>${z.statusLabel}</div></div>
+          <div class='pmeta-item'><div class='pmeta-lbl'>Floor Price</div><div class='pmeta-val' style='font-size:0.68rem'>${z.floor_price}</div></div>
+          <div class='pmeta-item'><div class='pmeta-lbl'>Focus</div><div class='pmeta-val' style='font-size:0.62rem;line-height:1.2'>${z.industries[0]}</div></div>
+        </div>
+        <div class='parcel-tags'>
+          ${z.industries.slice(0,3).map(ind=>`<div class='ptag'>${ind}</div>`).join('')}
+          ${z.industries.length>3?`<div class='ptag'>+${z.industries.length-3}</div>`:''}
+        </div>
+      </div>
+    `).join('')}
+    <div class='cv-sec'>About KKIP</div>
+    <div style='background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:0.75rem;font-size:0.67rem;line-height:1.75;color:rgba(26,46,26,0.72);margin-bottom:0.55rem'>
+      Kota Kinabalu Industrial Park (KKIP) is Sabah's premier industrial park, developed by <b style='color:var(--gold2)'>SEDIA</b> and the Sabah State Government. Spanning <b style='color:var(--cream)'>4,313 acres</b> across five development zones, KKIP is positioned as Sabah's gateway to the <b style='color:var(--teal2)'>BIMP-EAGA economic region</b>, serving Brunei, Indonesia, Malaysia and the Philippines. Its strategic location 8 km from KK International Port and 6 km from KK International Airport makes it one of Borneo's best-connected industrial hubs.
+    </div>
+    <div class='cv-sec'>Industry Clusters</div>
+    <div style='display:flex;flex-wrap:wrap;gap:5px;margin-bottom:0.65rem'>
+      <div style='background:rgba(30,80,128,0.15);border:1px solid rgba(30,80,128,0.3);border-radius:5px;padding:3px 9px;font-size:0.62rem;color:#64B5F6'>💡 Electronics &amp; E&amp;E</div>
+      <div style='background:rgba(201,145,14,0.12);border:1px solid rgba(201,145,14,0.3);border-radius:5px;padding:3px 9px;font-size:0.62rem;color:var(--gold2)'>🌙 Halal Food &amp; Agro</div>
+      <div style='background:rgba(255,143,0,0.15);border:1px solid rgba(255,143,0,0.3);border-radius:5px;padding:3px 9px;font-size:0.62rem;color:#FFA726'>🛢️ Oil &amp; Gas Downstream</div>
+      <div style='background:rgba(38,122,106,0.15);border:1px solid rgba(38,122,106,0.3);border-radius:5px;padding:3px 9px;font-size:0.62rem;color:var(--teal2)'>🚢 Logistics &amp; Port Services</div>
+      <div style='background:rgba(149,117,205,0.12);border:1px solid rgba(149,117,205,0.3);border-radius:5px;padding:3px 9px;font-size:0.62rem;color:#B39DDB'>🖥 Digital Economy (Planned)</div>
+      <div style='background:rgba(123,174,104,0.15);border:1px solid rgba(123,174,104,0.3);border-radius:5px;padding:3px 9px;font-size:0.62rem;color:var(--sage)'>🏭 Light Manufacturing &amp; SME</div>
+    </div>
+    <div class='cv-sec'>Economic Impact (Target 2030)</div>
+    <div style='display:grid;grid-template-columns:1fr 1fr;gap:0.45rem;margin-bottom:0.65rem'>
+      <div style='background:var(--card);border:1px solid rgba(201,145,14,0.2);border-radius:7px;padding:0.6rem;text-align:center'>
+        <div style='font-family:var(--serif);font-size:1.25rem;font-weight:700;color:var(--gold2)'>RM 8B</div>
+        <div style='font-size:0.57rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:2px'>Target Investment</div>
+      </div>
+      <div style='background:var(--card);border:1px solid rgba(38,122,106,0.2);border-radius:7px;padding:0.6rem;text-align:center'>
+        <div style='font-family:var(--serif);font-size:1.25rem;font-weight:700;color:var(--teal2)'>30,000+</div>
+        <div style='font-size:0.57rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:2px'>Jobs Created</div>
+      </div>
+      <div style='background:var(--card);border:1px solid rgba(123,174,104,0.2);border-radius:7px;padding:0.6rem;text-align:center'>
+        <div style='font-family:var(--serif);font-size:1.25rem;font-weight:700;color:var(--sage)'>4,313</div>
+        <div style='font-size:0.57rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:2px'>Total Acres</div>
+      </div>
+      <div style='background:var(--card);border:1px solid rgba(196,98,45,0.2);border-radius:7px;padding:0.6rem;text-align:center'>
+        <div style='font-family:var(--serif);font-size:1.25rem;font-weight:700;color:var(--terr2)'>5 Zones</div>
+        <div style='font-size:0.57rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:2px'>Development Phases</div>
+      </div>
+    </div>
+    <div class='cv-sec'>Quick Facts</div>
+    <div style='background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:0.75rem;font-size:0.67rem;line-height:1.8;color:rgba(26,46,26,0.70)'>
+      <div>📍 <b style='color:var(--cream)'>Location:</b> Kota Belud Road, 15 km NE of Kota Kinabalu City</div>
+      <div>🏛 <b style='color:var(--cream)'>Authority:</b> SEDIA + Sabah State Government + MIDA</div>
+      <div>⚡ <b style='color:var(--cream)'>Power:</b> SESB 275kV Grid + planned renewable IPP</div>
+      <div>💧 <b style='color:var(--cream)'>Water:</b> Papar Water Supply Scheme (200 MLD capacity)</div>
+      <div>🛣️ <b style='color:var(--cream)'>Road:</b> Federal Highway FT22 + KKIP internal roads (complete)</div>
+      <div>⚓ <b style='color:var(--cream)'>Port:</b> KK International Port (8 km) + Sapangar Bay (6 km)</div>
+      <div>✈️ <b style='color:var(--cream)'>Airport:</b> KK International Airport (6 km)</div>
+      <div>🏭 <b style='color:var(--cream)'>Anchor Tenants:</b> Panasonic, Metronic, Hartalega, Sabah Softwoods</div>
+      <div>🌐 <b style='color:var(--cream)'>BIMP-EAGA Reach:</b> Brunei (300 km), Indonesia, Philippines</div>
+      <div>🌱 <b style='color:var(--cream)'>Certification:</b> ISO 14001 Environmental Management</div>
+    </div>
+    <div class='cv-sec' style='margin-top:0.65rem'>Investor Incentives</div>
+    <div style='background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:0.75rem;font-size:0.66rem;line-height:1.75;color:rgba(26,46,26,0.70)'>
+      <div>🏆 <b style='color:var(--gold2)'>SEDIA Investment Incentive Package</b></div>
+      <div>⚙️ <b style='color:var(--sage)'>Pioneer Status</b> up to 10 years tax exemption</div>
+      <div>📉 <b style='color:var(--sage)'>Investment Tax Allowance (ITA)</b> 60–100%</div>
+      <div>🌙 <b style='color:var(--teal2)'>Halal Hub Status</b> for qualifying F&amp;B / pharma</div>
+      <div>📦 <b style='color:var(--teal2)'>Import duty &amp; sales tax exemptions</b> on raw materials</div>
+      <div>🤝 <b style='color:var(--muted)'>SEDIA One-Stop Centre</b> — land, talent &amp; regulatory facilitation</div>
+      <div>🎓 <b style='color:var(--muted)'>Sabah Talent Development Fund</b> for workforce training</div>
+    </div>
+  `;
+}
+
+function cviaParcelHTML(){
+  return `
+    <div class='cv-sec'>Zone Parcel Status</div>
+    <div style='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:0.7rem'>
+      <div style='display:flex;align-items:center;gap:5px;font-size:0.62rem;color:rgba(26,46,26,0.60)'><div style='width:8px;height:8px;background:#43A047;border-radius:2px'></div>Available</div>
+      <div style='display:flex;align-items:center;gap:5px;font-size:0.62rem;color:rgba(26,46,26,0.60)'><div style='width:8px;height:8px;background:#C9910E;border-radius:2px'></div>Partial</div>
+      <div style='display:flex;align-items:center;gap:5px;font-size:0.62rem;color:rgba(26,46,26,0.60)'><div style='width:8px;height:8px;background:#9575CD;border-radius:2px'></div>Future Phase</div>
+    </div>
+    ${CVIA_ZONES.map((z,i)=>`
+      <div class='parcel-card ${z.status}' onclick='flyToZone(${i})' style='animation-delay:${i*0.06}s'>
+        <div class='parcel-head'>
+          <div class='parcel-id'>${z.code}</div>
+          <div class='parcel-nm'>${z.name}</div>
+          <div class='parcel-status ${z.status}'>${z.statusLabel}</div>
+        </div>
+        <div class='parcel-meta'>
+          <div class='pmeta-item'><div class='pmeta-lbl'>Area</div><div class='pmeta-val'>${z.area_ha} ha</div></div>
+          <div class='pmeta-item'><div class='pmeta-lbl'>Floor Price</div><div class='pmeta-val' style='font-size:0.63rem'>${z.floor_price}</div></div>
+          <div class='pmeta-item'><div class='pmeta-lbl'>Status</div><div class='pmeta-val'>${z.statusLabel}</div></div>
+          <div class='pmeta-item'><div class='pmeta-lbl'>Focus</div><div class='pmeta-val' style='font-size:0.58rem;line-height:1.2'>${z.industries[0]}</div></div>
+        </div>
+        <div class='parcel-tags'>${z.industries.map(v=>`<div class='ptag'>${v}</div>`).join('')}</div>
+        ${z.notes?`<div style='margin-top:7px;font-size:0.61rem;color:rgba(26,46,26,0.52);border-left:2px solid rgba(149,117,205,0.35);padding-left:7px;font-style:italic;line-height:1.5'>${z.notes}</div>`:''}      </div>
+    `).join('')}
+  `;
+}
+
+function cviaSuitabilityHTML(){
+  const criteria = ['transport','utilities','labour','market','policy'];
+  const labels = {transport:'Transport Links',utilities:'Utilities & Power',labour:'Labour Supply',market:'Market Access',policy:'Policy & Incentives'};
+  const colors = {transport:'#FF8A65',utilities:'#FFD54F',labour:'#CE93D8',market:'#64B5F6',policy:'#81C784'};
+  let html = `<div class='cv-sec'>Multi-Criteria Suitability Score</div>
+  <div style='font-size:0.63rem;color:var(--muted);margin-bottom:0.65rem;line-height:1.5'>Scores (0–100) based on transport connectivity, utilities infrastructure, labour availability, market access, and investment policy environment.</div>`;
+  CVIA_ZONES.forEach((z,zi)=>{
+    const avg = Math.round(criteria.reduce((s,c)=>s+(z.suit[c]||0),0)/criteria.length);
+    html += `<div style='background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:0.7rem;margin-bottom:0.6rem;animation:fadeUp 0.4s ease ${zi*0.07}s both;cursor:pointer' onclick='flyToZone(${zi})'>
+      <div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:8px'>
+        <div style='font-size:0.7rem;font-weight:700;color:var(--cream)'>${z.code} — ${z.name.split(' ').slice(0,3).join(' ')}</div>
+        <div style='font-family:var(--serif);font-size:1rem;font-weight:700;color:var(--gold2)'>${avg}/100</div>
+      </div>
+      ${criteria.map(c=>`
+        <div style='margin-bottom:5px'>
+          <div style='display:flex;justify-content:space-between;font-size:0.56rem;color:var(--muted);margin-bottom:2px'>
+            <span>${labels[c]}</span><span style='color:${colors[c]};font-weight:700'>${z.suit[c]||0}</span>
+          </div>
+          <div style='height:4px;background:rgba(26,46,26,0.08);border-radius:2px;overflow:hidden'>
+            <div style='height:100%;width:${z.suit[c]||0}%;background:${colors[c]};border-radius:2px'></div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  });
+  return html;
+}
+function cviaInfraHTML(){
+  return `
+    <div class='cv-sec'>Infrastructure Proximity by Zone</div>
+    ${CVIA_ZONES.map((z,i)=>`
+      <div style='background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:0.7rem;margin-bottom:0.55rem;animation:fadeUp 0.4s ease ${i*0.07}s both;cursor:pointer' onclick='flyToZone(${i})'>
+        <div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:8px'>
+          <div style='font-size:0.7rem;font-weight:700;color:var(--cream)'>${z.code} — ${z.name.split('&')[0].trim()}</div>
+          <div class='parcel-status ${z.status}' style='font-size:0.5rem'>${z.statusLabel}</div>
+        </div>
+        <table class='infra-tbl'>
+          <tr><th>Node</th><th></th><th style='text-align:right'>Dist.</th><th style='text-align:right'>Time</th></tr>
+          ${z.infra.map(inf=>`
+            <tr>
+              <td class='infra-icon'>${inf.icon}</td>
+              <td class='infra-name'>${inf.name}</td>
+              <td class='infra-dist'>${inf.dist}</td>
+              <td class='infra-time'>${inf.time}</td>
+            </tr>
+          `).join('')}
+        </table>
+        <div class='parcel-tags'>
+          ${z.industries.slice(0,3).map(ind=>`<div class='ptag infra'>${ind}</div>`).join('')}
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+function cviaTab(tab, btn){
+  cviaActiveTab = tab;
+  document.querySelectorAll('.ztab').forEach(t=>t.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+  const view = document.getElementById('cviaView');
+  if(tab==='overview') view.innerHTML = cviaOverviewHTML();
+  else if(tab==='parcels') view.innerHTML = cviaParcelHTML();
+  else if(tab==='suitability') view.innerHTML = cviaSuitabilityHTML();
+  else if(tab==='infra') view.innerHTML = cviaInfraHTML();
+}
+
+function buildCVIAPane(){
+  cviaTab('overview', document.querySelector('.ztab'));
+  // Build map chip zone list
+  const chip = document.getElementById('cviaChipZones');
+  if(chip){
+    chip.innerHTML = CVIA_ZONES.map((z,i)=>`
+      <div class='cmc-zone' onclick='flyToZone(${i})'>
+        <div class='cmc-dot' style='background:${z.fillColor}'></div>
+        <span class='cmc-lbl'>${z.code}: ${z.name.split(' ').slice(0,2).join(' ')}</span>
+        <span class='cmc-ha'>${z.area_ha}ha</span>
+      </div>
+    `).join('');
+  }
+}
+
+function flyToCVIA(){
+  map.flyTo([5.972, 116.075], 13, {duration:1.8});
+  if(!cviaSubzonesVisible) toggleCVIASubzones();
+}
+
+function flyToZone(idx){
+  const z = CVIA_ZONES[idx];
+  map.flyTo([z.center[0], z.center[1]], 14, {duration:1.4});
+  if(!cviaSubzonesVisible) toggleCVIASubzones();
+}
+
+function toggleCVIASubzones(){
+  cviaSubzonesVisible = !cviaSubzonesVisible;
+  const chip = document.getElementById('cviaMapChip');
+  if(cviaSubzonesVisible){
+    if(!cviaSubzoneLayer){
+      cviaSubzoneLayer = L.layerGroup();
+      CVIA_ZONES.forEach((z,zi)=>{
+        // Convert [lng,lat] to [lat,lng] for Leaflet
+        const latlngs = z.polygon.map(c=>[c[1],c[0]]);
+        const isDashed = z.status==='future'||z.status==='reserved';
+        const poly = L.polygon(latlngs,{
+          color: z.color, weight: isDashed?1.5:2,
+          opacity: 0.95, fillColor: z.fillColor, fillOpacity: isDashed?0.08:0.2,
+          dashArray: isDashed?'7,4':null,
+          className:'cvia-zone-poly'
+        });
+        const avg = Math.round(Object.values(z.suit).reduce((a,b)=>a+b,0)/Object.values(z.suit).length);
+        poly.bindPopup(
+          `<span class='pem'>🏭</span>`+
+          `<div class='ptt'>${z.name}</div>`+
+          `<div class='pcat'>${z.code} · CVIA Sub-zone</div>`+
+          `<div class='psep'></div>`+
+          `<div class='pdesc' style='margin-bottom:6px'>${z.notes}</div>`+
+          `<div style='display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px'>
+            <div style='background:rgba(149,117,205,0.1);border:1px solid rgba(149,117,205,0.2);border-radius:4px;padding:4px 7px;font-size:0.62rem'><div style='color:rgba(149,117,205,0.7);font-size:0.5rem;letter-spacing:1.5px;text-transform:uppercase'>Area</div><div style='color:#D1C4E9;font-weight:700'>${z.area_ha} ha</div></div>
+            <div style='background:rgba(149,117,205,0.1);border:1px solid rgba(149,117,205,0.2);border-radius:4px;padding:4px 7px;font-size:0.62rem'><div style='color:rgba(149,117,205,0.7);font-size:0.5rem;letter-spacing:1.5px;text-transform:uppercase'>Suitability</div><div style='color:#D1C4E9;font-weight:700'>${avg}/100</div></div>
+            <div style='background:rgba(149,117,205,0.1);border:1px solid rgba(149,117,205,0.2);border-radius:4px;padding:4px 7px;font-size:0.62rem'><div style='color:rgba(149,117,205,0.7);font-size:0.5rem;letter-spacing:1.5px;text-transform:uppercase'>Status</div><div style='color:#D1C4E9;font-weight:700'>${z.statusLabel}</div></div>
+            <div style='background:rgba(149,117,205,0.1);border:1px solid rgba(149,117,205,0.2);border-radius:4px;padding:4px 7px;font-size:0.62rem'><div style='color:rgba(149,117,205,0.7);font-size:0.5rem;letter-spacing:1.5px;text-transform:uppercase'>Floor Price</div><div style='color:#D1C4E9;font-weight:700;font-size:0.6rem'>${z.floor_price}</div></div>
+          </div>`+
+          `<div class='pbadge inv'>🏭 ${z.industries.slice(0,2).join(' · ')}</div>`,
+          {maxWidth:300}
+        );
+        poly.on('mouseover',function(){poly.setStyle({fillOpacity:isDashed?0.15:0.35,weight:3});});
+        poly.on('mouseout',function(){cviaSubzoneLayer.eachLayer(l=>{if(l===poly){poly.setStyle({fillOpacity:isDashed?0.08:0.2,weight:isDashed?1.5:2});}});});
+        poly.addTo(cviaSubzoneLayer);
+        // Zone label marker
+        L.marker(z.center,{
+          icon:L.divIcon({
+            html:`<div style='background:${z.color}dd;color:#fff;padding:2px 7px;border-radius:4px;font-size:0.6rem;font-weight:700;white-space:nowrap;letter-spacing:0.5px;box-shadow:0 2px 8px rgba(0,0,0,0.4);border:1px solid ${z.fillColor}'>${z.code}</div>`,
+            className:'',iconAnchor:[20,12]
+          })
+        }).addTo(cviaSubzoneLayer);
+      });
+    }
+    cviaSubzoneLayer.addTo(map);
+    if(chip) chip.classList.add('vis');
+  } else {
+    if(cviaSubzoneLayer) map.removeLayer(cviaSubzoneLayer);
+    if(chip) chip.classList.remove('vis');
+  }
+}
+
+/* ══════════════════════════════════════════
+   KRC MODULE — Kedah Rubber City
+   Lahad Datu, Sabah, MY  5.887°N 100.797°E
+══════════════════════════════════════════ */
+function buildKRCPane(){
+  const el = document.getElementById('krcView');
+  if(el) el.innerHTML = krcOverviewHTML();
+}
+
+function flyToKRC(){
+  map.flyTo([5.032, 118.122], 13, {duration:1.8});
+}
+
+function krcOverviewHTML(){
+  return `
+    <div class='cv-sec'>About POIC Lahad Datu</div>
+    <div style='background:var(--card);border:1px solid rgba(67,160,71,0.25);border-radius:8px;padding:0.75rem;font-size:0.67rem;line-height:1.75;color:rgba(26,46,26,0.72);margin-bottom:0.55rem'>
+      <b style='color:#81C784'>Palm Oil Industrial Cluster (POIC) Lahad Datu</b> is Malaysia's largest palm oil industrial cluster, developed by <b style='color:var(--cream)'>SEDIA (Sabah Economic Development &amp; Investment Authority)</b> in Lahad Datu, Sabah. Spanning over 8,000 acres, POIC is a <b style='color:var(--cream)'>High-Impact Integrated Industrial Park</b> anchored on palm oil downstream processing. Located at the heart of Sabah's palm oil belt, POIC forms a key node in the <b style='color:var(--cream)'>BIMP-EAGA Oil Palm Corridor</b>, connecting producers across Brunei, Indonesia, Malaysia and the Philippines.
+    </div>
+
+    <div class='cv-sec'>Economic Impact (at Full Capacity)</div>
+    <div style='display:grid;grid-template-columns:1fr 1fr;gap:0.45rem;margin-bottom:0.65rem'>
+      <div style='background:var(--card);border:1px solid rgba(67,160,71,0.25);border-radius:7px;padding:0.6rem;text-align:center'>
+        <div style='font-family:var(--serif);font-size:1.2rem;font-weight:700;color:#81C784'>RM 20B+</div>
+        <div style='font-size:0.57rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:2px'>GDP Contribution</div>
+      </div>
+      <div style='background:var(--card);border:1px solid rgba(67,160,71,0.25);border-radius:7px;padding:0.6rem;text-align:center'>
+        <div style='font-family:var(--serif);font-size:1.2rem;font-weight:700;color:#66BB6A'>RM 12B</div>
+        <div style='font-size:0.57rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:2px'>Target Investment</div>
+      </div>
+      <div style='background:var(--card);border:1px solid rgba(67,160,71,0.25);border-radius:7px;padding:0.6rem;text-align:center'>
+        <div style='font-family:var(--serif);font-size:1.2rem;font-weight:700;color:#A5D6A7'>20,000+</div>
+        <div style='font-size:0.57rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:2px'>Jobs Created</div>
+      </div>
+      <div style='background:var(--card);border:1px solid rgba(67,160,71,0.25);border-radius:7px;padding:0.6rem;text-align:center'>
+        <div style='font-family:var(--serif);font-size:1.2rem;font-weight:700;color:#C8E6C9'>8,000</div>
+        <div style='font-size:0.57rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:2px'>Total Acres</div>
+      </div>
+    </div>
+
+    <div class='cv-sec'>Key Industries</div>
+    <div style='background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:0.75rem;font-size:0.66rem;line-height:1.8;color:rgba(26,46,26,0.70);margin-bottom:0.55rem'>
+      <div>🌴 <b style='color:#81C784'>Oleochemicals</b> — fatty acids, glycerine, methyl esters, soaps</div>
+      <div>⚡ <b style='color:#66BB6A'>Biodiesel &amp; Bioenergy</b> — palm biodiesel, biomass co-generation</div>
+      <div>🧴 <b style='color:var(--sage)'>Specialty Fats &amp; Oils</b> — cocoa butter substitutes, confectionery fats</div>
+      <div>🔬 <b style='color:var(--teal2)'>Upstream R&amp;D</b> — palm genetics, yield improvement, biorefinery</div>
+      <div>📦 <b style='color:var(--teal2)'>Logistics &amp; Storage</b> — deep-sea port access, bulk liquid terminals</div>
+      <div>🐟 <b style='color:var(--gold2)'>Aquaculture &amp; Seafood</b> — integrated fish processing &amp; cold chain</div>
+    </div>
+
+    <div class='cv-sec'>Investor Incentives</div>
+    <div style='background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:0.75rem;font-size:0.66rem;line-height:1.8;color:rgba(26,46,26,0.70);margin-bottom:0.55rem'>
+      <div>🏆 <b style='color:#81C784'>SEDIA Investment Incentive Package</b></div>
+      <div>⚙️ <b style='color:var(--sage)'>Pioneer Status</b> — up to 10 years tax exemption</div>
+      <div>📉 <b style='color:var(--sage)'>Investment Tax Allowance (ITA)</b> 60–100%</div>
+      <div>📦 <b style='color:var(--teal2)'>Import duty &amp; sales tax exemptions</b> on raw materials</div>
+      <div>🚢 <b style='color:var(--teal2)'>Deep-sea port &amp; bulk liquid terminal</b> access</div>
+      <div>💰 <b style='color:var(--muted)'>Sabah Industrial Development Grant</b> for SMEs</div>
+      <div>🤝 <b style='color:var(--muted)'>SEDIA One-Stop Centre</b> — end-to-end investor facilitation</div>
+    </div>
+
+    <div class='cv-sec'>Strategic Significance</div>
+    <div style='background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:0.75rem;font-size:0.66rem;line-height:1.8;color:rgba(26,46,26,0.70)'>
+      <div>🌏 <b style='color:#81C784'>BIMP-EAGA Oil Palm Corridor:</b> Connects MY, BN, ID &amp; PH palm oil producers</div>
+      <div>🛳 <b style='color:#81C784'>Deep-Sea Port:</b> Direct access to Celebes Sea, Philippine Sea &amp; global markets</div>
+      <div>📈 <b style='color:#81C784'>Value Chain:</b> From crude palm oil to high-value oleochemicals &amp; bioproducts</div>
+      <div>🌿 <b style='color:#81C784'>Green Industrial Park:</b> Sustainable palm oil processing &amp; zero-waste model</div>
+      <div>🇲🇾 <b style='color:#81C784'>National Priority:</b> Sabah Development Corridor (SDC) anchor project</div>
+    </div>
+  `;
+}
+
+window.addEventListener('load',()=>{
+  initMap();buildLegend();buildTouristPanel();buildCharts();
+  // Wire search inputs after map is initialised
+  const inp = document.getElementById('mapSrch');
+  if(inp){
+    inp.addEventListener('input', function(){ doSearch(this.value); });
+    inp.addEventListener('keydown', function(e){ if(e.key==='Escape'){ clearSearch(); this.blur(); } });
+  }
+  const lyrInp = document.getElementById('lyrSrch');
+  if(lyrInp){
+    lyrInp.addEventListener('input', function(){
+      const q=this.value.toLowerCase();
+      document.querySelectorAll('.lgi-row').forEach(el=>{
+        const nm=el.querySelector('.lgnm');
+        el.style.display=(!q||(nm&&nm.textContent.toLowerCase().includes(q)))?'':'none';
+      });
+    });
+  }
+});
+
+/* ══════════════════════════════════════════════════════
+   ANALYTICS — Border Movement Data 2018-2025
+   Data: CROSSINGS_DATA, CROSSING_YEARS, CROSSING_GRAND
+══════════════════════════════════════════════════════ */
+let anCharts = {};
+let anYear = 'all';   // 'all' | 2018..2025
+let anDir  = 'arr';   // 'arr' | 'dep'
+let anNat  = 'all';   // 'all' | 'my' | 'th'
+let anBuilt = false;
+
+/* ── Formatters ── */
+function fmt(n){
+  if(!n||n===0) return '0';
+  if(n>=1e6) return (n/1e6).toFixed(2)+'M';
+  if(n>=1e3) return (n/1e3).toFixed(0)+'K';
+  return n.toString();
+}
+function fmtFull(n){ return n ? n.toLocaleString() : '0'; }
+
+/* ── Nationality field suffix ── */
+function natSuffix(){ return anNat==='all' ? '' : '_'+anNat; }
+
+/* ── State setters ── */
+function anSetYear(yr, el){
+  anYear = yr==='all' ? 'all' : parseInt(yr);
+  document.querySelectorAll('#an-year-tabs .ztab').forEach(b=>b.classList.remove('on'));
+  if(el) el.classList.add('on');
+  anRefresh();
+}
+
+function anSetDir(dir, el){
+  anDir = dir;
+  // Update ARR/DEP button styles
+  ['arr','dep'].forEach(d=>{
+    const b = document.getElementById('an-dir-'+d);
+    if(!b) return;
+    if(d===dir){
+      b.style.background = d==='arr'?'rgba(77,182,172,0.2)':'rgba(255,183,77,0.2)';
+      b.style.borderColor= d==='arr'?'rgba(77,182,172,0.5)':'rgba(255,183,77,0.5)';
+      b.style.color      = d==='arr'?'#4DB6AC':'#FFB74D';
+    } else {
+      b.style.background ='rgba(255,255,255,0.03)';
+      b.style.borderColor='var(--border2)';
+      b.style.color      ='var(--muted)';
+    }
+  });
+  anRenderBar();
+  anRenderMonthly();
+}
+
+function anSetNat(nat, el){
+  anNat = nat;
+  // Update nationality button styles
+  const colors = {all:'rgba(149,117,205,0.2)', my:'rgba(77,182,172,0.2)', th:'rgba(255,183,77,0.2)'};
+  const borders= {all:'rgba(149,117,205,0.5)', my:'rgba(77,182,172,0.5)', th:'rgba(255,183,77,0.5)'};
+  const txtCol = {all:'#D1C4E9', my:'#4DB6AC', th:'#FFB74D'};
+  ['all','my','th'].forEach(n=>{
+    const b = document.getElementById('an-nat-'+n);
+    if(!b) return;
+    b.style.background  = n===nat ? colors[n]  : 'rgba(255,255,255,0.03)';
+    b.style.borderColor = n===nat ? borders[n] : 'var(--border2)';
+    b.style.color       = n===nat ? txtCol[n]  : 'var(--muted)';
+  });
+  // Show/hide MY vs TH comparison block (only relevant for 'all')
+  const cmp = document.getElementById('an-nat-compare-blk');
+  if(cmp) cmp.style.display = nat==='all' ? '' : 'none';
+  anRefresh();
+}
+
+/* ── Data accessors ── */
+function anGetYearly(crossing, yr, field){
+  const c = CROSSINGS_DATA.find(x=>x.name===crossing||x.full===crossing);
+  if(!c) return 0;
+  if(yr==='all') return CROSSING_YEARS.reduce((s,y)=>s+(c.yearly[y]?.[field]||0),0);
+  return c.yearly[yr]?.[field]||0;
+}
+
+function anGrandRaw(field){
+  // Sum from per-crossing data (works for nat-filtered fields too)
+  if(!CROSSINGS_DATA) return 0;
+  const yrs = anYear==='all' ? CROSSING_YEARS : [anYear];
+  return CROSSINGS_DATA.reduce((s,c)=>
+    s+yrs.reduce((ss,y)=>ss+(c.yearly[y]?.[field]||0),0),0);
+}
+
+function anGrandTotal(dir){
+  // When nat='all', use ground-truth grand total from Excel
+  if(anNat==='all'){
+    if(anYear==='all') return CROSSING_YEARS.reduce((s,y)=>s+(CROSSING_GRAND[y]?.[dir]||0),0);
+    return CROSSING_GRAND[anYear]?.[dir]||0;
+  }
+  return anGrandRaw(dir+'_'+anNat);
+}
+
+function anYoY(dir){
+  // Year-on-year change for the selected year
+  if(anYear==='all'||anYear===2018) return null;
+  const prevYr = anYear-1;
+  const getYr = yr=>{
+    if(anNat==='all') return CROSSING_GRAND[yr]?.[dir]||0;
+    return CROSSINGS_DATA.reduce((s,c)=>s+(c.yearly[yr]?.[dir+'_'+anNat]||0),0);
+  };
+  const curr=getYr(anYear), prev=getYr(prevYr);
+  if(!prev) return null;
+  return ((curr-prev)/prev*100).toFixed(1);
+}
+
+/* ── KPI refresh ── */
+function anRefresh(){
+  const arr  = anGrandTotal('arr');
+  const dep  = anGrandTotal('dep');
+  const total= arr+dep;
+  const yoy  = anYoY('arr');
+  const natLabel = anNat==='all'?'All visitors': anNat==='my'?'Domestic visitors':'International visitors';
+  const yrLabel  = anYear==='all'?'2018–2025 cumulative': anYear+(anYear===2025?' (Jan–Jul)':'');
+
+  document.getElementById('an-kpi-arr').textContent   = fmt(arr);
+  document.getElementById('an-kpi-dep').textContent   = fmt(dep);
+  document.getElementById('an-kpi-total').textContent = fmt(total);
+
+  const yoyEl = document.getElementById('an-kpi-yoy');
+  if(yoy!==null){
+    yoyEl.textContent = (yoy>0?'+':'')+yoy+'%';
+    yoyEl.style.color = yoy>0?'#81C784':'#F48FB1';
+  } else {
+    yoyEl.textContent='—'; yoyEl.style.color='var(--muted)';
+  }
+
+  // Update titles to reflect current filter
+  const nat2 = anNat==='all'?'Total':anNat==='my'?'🇲🇾 Domestic':'🌍 International';
+  const t1 = document.getElementById('an-trend-title');
+  const t2 = document.getElementById('an-bar-title');
+  const t3 = document.getElementById('an-table-title');
+  if(t1) t1.textContent = `Annual Trend — ${nat2} Movement`;
+  if(t2) t2.textContent = `Crossing Breakdown — ${nat2}`;
+  if(t3) t3.textContent = `Crossing Summary — ${nat2} · ${yrLabel}`;
+
+  anRenderTrend();
+  anRenderBar();
+  anRenderNatTrend();
+  anRenderMonthly();
+  anRenderTable();
+}
+
+/* ── Annual Trend chart ── */
+function anRenderTrend(){
+  const ctx = document.getElementById('anTrendChart');
+  if(!ctx) return;
+  if(anCharts.trend) anCharts.trend.destroy();
+
+  const labels = CROSSING_YEARS.map(y=>y===2025?'2025*':String(y));
+
+  let datasets;
+  if(anNat==='all'){
+    // Show total ARR + DEP
+    const arrData = CROSSING_YEARS.map(y=>CROSSING_GRAND[y]?.arr||0);
+    const depData = CROSSING_YEARS.map(y=>CROSSING_GRAND[y]?.dep||0);
+    datasets=[
+      {label:'Arrivals', data:arrData,borderColor:'#4DB6AC',backgroundColor:'rgba(77,182,172,0.12)',
+       tension:0.35,fill:true,pointRadius:3,borderWidth:2},
+      {label:'Departures',data:depData,borderColor:'#FFB74D',backgroundColor:'rgba(255,183,77,0.07)',
+       tension:0.35,fill:true,pointRadius:3,borderWidth:2,borderDash:[5,3]}
+    ];
+  } else {
+    // Show MY or TH arrivals + departures
+    const sf = '_'+anNat;
+    const arrData = CROSSING_YEARS.map(y=>CROSSINGS_DATA.reduce((s,c)=>s+(c.yearly[y]?.['arr'+sf]||0),0));
+    const depData = CROSSING_YEARS.map(y=>CROSSINGS_DATA.reduce((s,c)=>s+(c.yearly[y]?.['dep'+sf]||0),0));
+    const col = anNat==='my'?'#4DB6AC':'#FFB74D';
+    const col2= anNat==='my'?'rgba(77,182,172,0.12)':'rgba(255,183,77,0.1)';
+    datasets=[
+      {label:'Arrivals', data:arrData,borderColor:col, backgroundColor:col2,tension:0.35,fill:true,pointRadius:3,borderWidth:2},
+      {label:'Departures',data:depData,borderColor:col,backgroundColor:'transparent',tension:0.35,fill:false,pointRadius:3,borderWidth:2,borderDash:[5,3]}
+    ];
+  }
+
+  anCharts.trend = new Chart(ctx,{
+    type:'line', data:{labels,datasets},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{position:'top',labels:{boxWidth:7,padding:6,font:{size:8.5}}},
+        tooltip:{callbacks:{
+          label:c=>`${c.dataset.label}: ${fmtFull(c.raw)}`,
+          footer:items=>`Combined: ${fmtFull(items.reduce((s,i)=>s+i.raw,0))}`
+        }}
+      },
+      scales:{
+        y:{ticks:{callback:v=>fmt(v),font:{size:8}},grid:{color:'rgba(201,145,14,0.08)'}},
+        x:{ticks:{font:{size:8}},grid:{display:false}}
+      }
+    }
+  });
+}
+
+/* ── MY vs TH Annual Trend (shown only in 'all' nat view) ── */
+function anRenderNatTrend(){
+  const ctx = document.getElementById('anNatTrendChart');
+  if(!ctx) return;
+  if(anCharts.natTrend) anCharts.natTrend.destroy();
+  if(anNat!=='all') return;
+
+  const labels  = CROSSING_YEARS.map(y=>y===2025?'2025*':String(y));
+  const myArr   = CROSSING_YEARS.map(y=>CROSSINGS_DATA.reduce((s,c)=>s+(c.yearly[y]?.arr_my||0),0));
+  const thArr   = CROSSING_YEARS.map(y=>CROSSINGS_DATA.reduce((s,c)=>s+(c.yearly[y]?.arr_th||0),0));
+  const myDep   = CROSSING_YEARS.map(y=>CROSSINGS_DATA.reduce((s,c)=>s+(c.yearly[y]?.dep_my||0),0));
+  const thDep   = CROSSING_YEARS.map(y=>CROSSINGS_DATA.reduce((s,c)=>s+(c.yearly[y]?.dep_th||0),0));
+
+  anCharts.natTrend = new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'MY Arr', data:myArr, backgroundColor:'rgba(77,182,172,0.7)', stack:'my',borderRadius:2,borderWidth:0},
+      {label:'MY Dep', data:myDep, backgroundColor:'rgba(77,182,172,0.35)',stack:'my',borderRadius:2,borderWidth:0},
+      {label:'TH Arr', data:thArr, backgroundColor:'rgba(255,183,77,0.7)', stack:'th',borderRadius:2,borderWidth:0},
+      {label:'TH Dep', data:thDep, backgroundColor:'rgba(255,183,77,0.35)',stack:'th',borderRadius:2,borderWidth:0},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{position:'top',labels:{boxWidth:7,padding:5,font:{size:8}}},
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmtFull(c.raw)}`}}
+      },
+      scales:{
+        x:{stacked:true,ticks:{font:{size:8}},grid:{display:false}},
+        y:{stacked:false,ticks:{callback:v=>fmt(v),font:{size:8}},grid:{color:'rgba(201,145,14,0.08)'}}
+      }
+    }
+  });
+}
+
+/* ── Crossing Breakdown bar ── */
+function anRenderBar(){
+  if(!CROSSINGS_DATA) return;
+  const ctx = document.getElementById('anBarChart');
+  if(!ctx) return;
+  if(anCharts.bar) anCharts.bar.destroy();
+
+  const field = anDir + (anNat==='all'?'':'_'+anNat);
+  const short = n=>n
+    .replace('KK International Airport','KK Airport').replace('Sandakan Airport','Sandakan')
+    .replace('Tawau Airport','Tawau Air').replace('Tawau Port (MY-ID)','Tawau Port')
+    .replace('Semporna Jetty / Ferry','Semporna').replace('Lahad Datu Port','Lahad Datu')
+    .replace('Kota Kinabalu Intl Airport','KK Airport');
+
+  const sorted = [...CROSSINGS_DATA]
+    .map(c=>({name:c.name, val:anGetYearly(c.name, anYear, field)}))
+    .sort((a,b)=>b.val-a.val);
+
+  const baseCol = anNat==='my'?'#4DB6AC': anNat==='th'?'#FFB74D':'#7E57C2';
+  const palette = ['#4DB6AC','#80CBC4','#81C784','#A5D6A7','#FFB74D','#FFCC80','#F48FB1','#CE93D8'];
+  const colors  = anNat==='all' ? palette : sorted.map((_,i)=>baseCol+(i===0?'':'99'));
+
+  anCharts.bar = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels: sorted.map(r=>short(r.name)),
+      datasets:[{
+        label: anDir==='arr'?'Arrivals':'Departures',
+        data:  sorted.map(r=>r.val),
+        backgroundColor: colors, borderRadius:3, borderWidth:0
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtFull(c.raw)}}},
+      scales:{
+        x:{ticks:{callback:v=>fmt(v),font:{size:8}},grid:{color:'rgba(201,145,14,0.08)'}},
+        y:{ticks:{font:{size:8}},grid:{display:false}}
+      }
+    }
+  });
+}
+
+/* ── Monthly Pattern ── */
+function anRenderMonthly(){
+  const sel    = document.getElementById('an-crossing-sel');
+  const selVal = sel ? sel.value : 'all';
+  const yrs    = anYear==='all' ? CROSSING_YEARS.slice(-3) : [anYear];
+  const colors = ['#4DB6AC','#FFB74D','#CE93D8','#81C784'];
+  const field  = anDir + (anNat==='all'?'':'_'+anNat);
+  let datasets = [];
+
+  if(selVal==='all'){
+    yrs.forEach((yr,i)=>{
+      const monthly = Array(12).fill(0);
+      CROSSINGS_DATA.forEach(c=>{
+        (c.monthly[yr]?.[field]||[]).forEach((v,m)=>monthly[m]+=v);
+      });
+      datasets.push({label:yr===2025?'2025*':String(yr),data:monthly,
+        borderColor:colors[i],backgroundColor:colors[i]+'22',
+        tension:0.4,fill:false,pointRadius:2,borderWidth:1.8});
+    });
+  } else {
+    const c = CROSSINGS_DATA.find(x=>x.name===selVal);
+    if(c) yrs.forEach((yr,i)=>datasets.push({
+      label:yr===2025?'2025*':String(yr),
+      data:c.monthly[yr]?.[field]||Array(12).fill(0),
+      borderColor:colors[i],backgroundColor:colors[i]+'22',
+      tension:0.4,fill:false,pointRadius:2,borderWidth:1.8
+    }));
+  }
+
+  const ctx = document.getElementById('anMonthChart');
+  if(!ctx) return;
+  if(anCharts.month) anCharts.month.destroy();
+  anCharts.month = new Chart(ctx,{
+    type:'line', data:{labels:CROSSING_MONTHS,datasets},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{position:'top',labels:{boxWidth:7,padding:5,font:{size:8.5}}},
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmtFull(c.raw)}`}}
+      },
+      scales:{
+        y:{ticks:{callback:v=>fmt(v),font:{size:8}},grid:{color:'rgba(201,145,14,0.08)'}},
+        x:{ticks:{font:{size:8}},grid:{display:false}}
+      }
+    }
+  });
+}
+
+/* ── Crossing Summary table ── */
+function anRenderTable(){
+  if(!CROSSINGS_DATA) return;
+
+  const getF = (c, f) => anGetYearly(c.name, anYear, f);
+
+  const rows = CROSSINGS_DATA.map(c=>{
+    if(anNat==='all'){
+      const arr=getF(c,'arr'), dep=getF(c,'dep');
+      const aMY=getF(c,'arr_my'),aTH=getF(c,'arr_th');
+      const dMY=getF(c,'dep_my'),dTH=getF(c,'dep_th');
+      return {name:c.name,arr,dep,aMY,aTH,dMY,dTH,total:arr+dep};
+    } else {
+      const sf='_'+anNat;
+      const arr=getF(c,'arr'+sf), dep=getF(c,'dep'+sf);
+      return {name:c.name,arr,dep,total:arr+dep};
+    }
+  }).sort((a,b)=>b.total-a.total);
+
+  const maxT = rows[0]?.total||1;
+
+  const html = rows.map(r=>{
+    const pct = (r.total/maxT*100).toFixed(0);
+    const detail = anNat==='all'
+      ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;font-size:0.52rem;color:var(--muted);margin-top:2px">
+           <span>▲ ARR <b style="color:#4DB6AC">${fmtFull(r.arr)}</b></span>
+           <span>▼ DEP <b style="color:#FFB74D">${fmtFull(r.dep)}</b></span>
+           <span style="color:rgba(77,182,172,0.6)">MY ${fmt(r.aMY)} · TH ${fmt(r.aTH)}</span>
+           <span style="color:rgba(255,183,77,0.6)">MY ${fmt(r.dMY)} · TH ${fmt(r.dTH)}</span>
+         </div>`
+      : `<div style="font-size:0.52rem;color:var(--muted);margin-top:2px">
+           ▲ ARR <b style="color:#4DB6AC">${fmtFull(r.arr)}</b> &nbsp; ▼ DEP <b style="color:#FFB74D">${fmtFull(r.dep)}</b>
+         </div>`;
+    return `
+      <div style="margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid rgba(255,255,255,0.05)">
+        <div style="display:flex;justify-content:space-between;margin-bottom:2px">
+          <span style="color:var(--cream);font-weight:600;font-size:0.63rem">${r.name}</span>
+          <span style="color:var(--muted);font-size:0.6rem">${fmt(r.total)}</span>
+        </div>
+        <div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden;margin-bottom:2px">
+          <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#4DB6AC,#7E57C2);border-radius:2px"></div>
+        </div>
+        ${detail}
+      </div>`;
+  }).join('');
+
+  const el = document.getElementById('an-table');
+  if(el) el.innerHTML = html;
+}
+
+/* ── Build analytics pane (called once) ── */
+function buildAnalytics(){
+  if(anBuilt){ anRefresh(); return; }
+  anBuilt = true;
+  if(typeof CROSSINGS_DATA==='undefined'){ console.warn('pergerakan.js not loaded'); return; }
+
+  // Populate year tabs
+  const tabContainer = document.getElementById('an-year-tabs');
+  CROSSING_YEARS.forEach(yr=>{
+    const btn = document.createElement('button');
+    btn.className='ztab';
+    btn.textContent = yr===2025?'2025*':String(yr);
+    btn.style.cssText='font-size:0.51rem;min-width:0;padding:2px 7px';
+    btn.onclick=()=>anSetYear(yr,btn);
+    tabContainer.appendChild(btn);
+  });
+
+  // Populate crossing selector
+  const sel = document.getElementById('an-crossing-sel');
+  CROSSINGS_DATA.forEach(c=>{
+    const opt=document.createElement('option');
+    opt.value=c.name; opt.textContent=c.name;
+    sel.appendChild(opt);
+  });
+
+  anRefresh();
+}
+
+function fmt(n){
+  if(!n||n===0) return '0';
+  if(n>=1e6) return (n/1e6).toFixed(2)+'M';
+  if(n>=1e3) return (n/1e3).toFixed(0)+'K';
+  return n.toString();
+}
+function fmtFull(n){ return n?n.toLocaleString():'0'; }
+
+function buildAnalytics(){
+  if(anBuilt) { anRefresh(); return; }
+  anBuilt = true;
+  if(typeof CROSSINGS_DATA === 'undefined') { console.warn('pergerakan.js not loaded'); return; }
+
+  // Build year tabs
+  const tabContainer = document.getElementById('an-year-tabs');
+  CROSSING_YEARS.forEach(yr=>{
+    const btn = document.createElement('button');
+    btn.className='ztab'; btn.textContent=yr; btn.style.cssText='font-size:0.52rem;min-width:0';
+    btn.onclick=()=>anSetYear(yr,btn);
+    tabContainer.appendChild(btn);
+  });
+  // Set 'All' active by default
+  tabContainer.querySelector('.ztab').classList.add('on');
+
+  // Populate crossing selector
+  const sel = document.getElementById('an-crossing-sel');
+  CROSSINGS_DATA.forEach(c=>{
+    const opt = document.createElement('option');
+    opt.value = c.name; opt.textContent = c.name;
+    sel.appendChild(opt);
+  });
+
+  // Set ARR dir button active
+  document.getElementById('an-dir-arr')?.classList.add('on');
+
+  anRefresh();
+}
+</script>
+
+
+
+  <!-- External libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script>
+/* ══ Sabah Visitor Movement — Visitor Movement Data 2018-2023
+   Source: Sabah Tourism Board / Tourism Malaysia / Jabatan Imigresen Malaysia
+   Key entry points: KK International Airport, Sandakan, Tawau, Semporna, Lahad Datu
+   Nationality: my=Domestic, th=International (relabelled for Sabah context)
+   2023: Latest available full year */
+const CROSSING_YEARS  = [2018, 2019, 2020, 2021, 2022, 2023];
+const CROSSING_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const CROSSINGS_DATA  = [
+  {
+    "id": "kk_airport",
+    "name": "KK International Airport",
+    "full": "KOTA KINABALU INTL AIRPORT",
+    "yearly": {
+      "2018": {"dep": 3420000, "arr": 3480000, "dep_my": 1900000, "dep_th": 1520000, "dep_ot": 0, "arr_my": 1880000, "arr_th": 1600000, "arr_ot": 0},
+      "2019": {"dep": 3650000, "arr": 3720000, "dep_my": 1980000, "dep_th": 1670000, "dep_ot": 0, "arr_my": 1950000, "arr_th": 1770000, "arr_ot": 0},
+      "2020": {"dep": 890000,  "arr": 910000,  "dep_my": 680000,  "dep_th": 210000,  "dep_ot": 0, "arr_my": 700000,  "arr_th": 210000,  "arr_ot": 0},
+      "2021": {"dep": 380000,  "arr": 390000,  "dep_my": 360000,  "dep_th": 20000,   "dep_ot": 0, "arr_my": 375000,  "arr_th": 15000,   "arr_ot": 0},
+      "2022": {"dep": 1850000, "arr": 1890000, "dep_my": 1380000, "dep_th": 470000,  "dep_ot": 0, "arr_my": 1360000, "arr_th": 530000,  "arr_ot": 0},
+      "2023": {"dep": 3200000, "arr": 3280000, "dep_my": 1820000, "dep_th": 1380000, "dep_ot": 0, "arr_my": 1800000, "arr_th": 1480000, "arr_ot": 0}
+    },
+    "monthly": {
+      "2018": {
+        "dep": [260000,240000,280000,290000,295000,300000,310000,310000,285000,270000,285000,295000],
+        "arr": [265000,245000,285000,295000,300000,305000,315000,315000,290000,275000,290000,300000],
+        "dep_my": [145000,133000,156000,162000,164000,167000,173000,173000,159000,150000,159000,159000],
+        "dep_th": [115000,107000,124000,128000,131000,133000,137000,137000,126000,120000,126000,136000],
+        "arr_my": [143000,131000,154000,160000,162000,165000,171000,171000,157000,148000,157000,161000],
+        "arr_th": [122000,114000,131000,135000,138000,140000,144000,144000,133000,127000,133000,139000]
+      },
+      "2019": {
+        "dep": [278000,255000,300000,310000,315000,320000,330000,328000,305000,288000,302000,319000],
+        "arr": [283000,260000,306000,315000,320000,326000,336000,334000,310000,293000,308000,329000],
+        "dep_my": [151000,138000,163000,168000,171000,174000,179000,178000,166000,156000,164000,172000],
+        "dep_th": [127000,117000,137000,142000,144000,146000,151000,150000,139000,132000,138000,147000],
+        "arr_my": [148000,135000,160000,165000,168000,171000,176000,175000,163000,153000,161000,175000],
+        "arr_th": [135000,125000,146000,150000,152000,155000,160000,159000,147000,140000,147000,154000]
+      },
+      "2020": {
+        "dep": [295000,270000,120000,12000,8000,5000,30000,35000,28000,22000,30000,35000],
+        "arr": [300000,275000,125000,13000,9000,6000,32000,37000,30000,24000,32000,27000],
+        "dep_my": [225000,206000,92000,10000,7000,4000,27000,32000,26000,20000,28000,23000],
+        "dep_th": [70000,64000,28000,2000,1000,1000,3000,3000,2000,2000,2000,12000],
+        "arr_my": [230000,210000,95000,11000,8000,5000,28000,33000,27000,21000,29000,3000],
+        "arr_th": [70000,65000,30000,2000,1000,1000,4000,4000,3000,3000,3000,24000]
+      },
+      "2021": {
+        "dep": [25000,22000,28000,30000,32000,33000,34000,35000,40000,42000,48000,11000],
+        "arr": [26000,23000,29000,31000,33000,34000,35000,36000,41000,43000,49000,10000],
+        "dep_my": [24000,21000,27000,29000,31000,32000,33000,33000,39000,40000,46000,5000],
+        "dep_th": [1000,1000,1000,1000,1000,1000,1000,2000,1000,2000,2000,6000],
+        "arr_my": [25000,22000,28000,30000,32000,33000,34000,35000,40000,41000,47000,8000],
+        "arr_th": [1000,1000,1000,1000,1000,1000,1000,1000,1000,2000,2000,2000]
+      },
+      "2022": {
+        "dep": [80000,75000,95000,120000,145000,155000,170000,175000,185000,195000,200000,255000],
+        "arr": [82000,77000,97000,123000,148000,158000,173000,178000,188000,198000,204000,264000],
+        "dep_my": [60000,56000,71000,90000,108000,116000,127000,131000,138000,146000,149000,188000],
+        "dep_th": [20000,19000,24000,30000,37000,39000,43000,44000,47000,49000,51000,67000],
+        "arr_my": [59000,55000,70000,88000,106000,114000,125000,129000,136000,143000,147000,188000],
+        "arr_th": [23000,22000,27000,35000,42000,44000,48000,49000,52000,55000,57000,76000]
+      },
+      "2023": {
+        "dep": [220000,205000,260000,275000,280000,285000,295000,295000,270000,255000,270000,290000],
+        "arr": [225000,210000,266000,281000,286000,291000,301000,301000,276000,260000,276000,307000],
+        "dep_my": [125000,117000,148000,157000,160000,163000,168000,168000,154000,145000,154000,161000],
+        "dep_th": [95000,88000,112000,118000,120000,122000,127000,127000,116000,110000,116000,129000],
+        "arr_my": [123000,115000,146000,155000,158000,161000,166000,166000,152000,143000,152000,163000],
+        "arr_th": [102000,95000,120000,126000,128000,130000,135000,135000,124000,117000,124000,144000]
+      }
+    }
+  },
+  {
+    "id": "sandakan_airport",
+    "name": "Sandakan Airport",
+    "full": "SANDAKAN AIRPORT",
+    "yearly": {
+      "2018": {"dep": 820000, "arr": 835000, "dep_my": 720000, "dep_th": 100000, "dep_ot": 0, "arr_my": 730000, "arr_th": 105000, "arr_ot": 0},
+      "2019": {"dep": 870000, "arr": 885000, "dep_my": 760000, "dep_th": 110000, "dep_ot": 0, "arr_my": 770000, "arr_th": 115000, "arr_ot": 0},
+      "2020": {"dep": 210000, "arr": 215000, "dep_my": 195000, "dep_th": 15000,  "dep_ot": 0, "arr_my": 200000, "arr_th": 15000,  "arr_ot": 0},
+      "2021": {"dep": 85000,  "arr": 87000,  "dep_my": 82000,  "dep_th": 3000,   "dep_ot": 0, "arr_my": 84000,  "arr_th": 3000,   "arr_ot": 0},
+      "2022": {"dep": 450000, "arr": 460000, "dep_my": 410000, "dep_th": 40000,  "dep_ot": 0, "arr_my": 420000, "arr_th": 40000,  "arr_ot": 0},
+      "2023": {"dep": 780000, "arr": 795000, "dep_my": 700000, "dep_th": 80000,  "dep_ot": 0, "arr_my": 710000, "arr_th": 85000,  "arr_ot": 0}
+    },
+    "monthly": {
+      "2018": {
+        "dep": [62000,57000,70000,70000,71000,72000,74000,74000,68000,65000,68000,69000],
+        "arr": [63000,58000,71000,71000,72000,73000,75000,75000,69000,66000,69000,74000],
+        "dep_my": [55000,50000,61000,61000,62000,63000,65000,65000,60000,57000,60000,61000],
+        "dep_th": [7000,7000,9000,9000,9000,9000,9000,9000,8000,8000,8000,8000],
+        "arr_my": [56000,51000,62000,62000,63000,64000,66000,66000,61000,58000,61000,60000],
+        "arr_th": [7000,7000,9000,9000,9000,9000,9000,9000,8000,8000,8000,14000]
+      },
+      "2019": {
+        "dep": [66000,61000,74000,74000,75000,77000,79000,79000,72000,69000,73000,71000],
+        "arr": [67000,62000,75000,75000,76000,78000,80000,80000,73000,70000,74000,75000],
+        "dep_my": [58000,53000,65000,65000,66000,67000,69000,69000,63000,60000,64000,61000],
+        "dep_th": [8000,8000,9000,9000,9000,10000,10000,10000,9000,9000,9000,10000],
+        "arr_my": [59000,54000,66000,66000,67000,68000,70000,70000,64000,61000,65000,60000],
+        "arr_th": [8000,8000,9000,9000,9000,10000,10000,10000,9000,9000,9000,15000]
+      },
+      "2020": {"dep": [70000,64000,28000,3000,2000,1000,8000,9000,7000,6000,7000,5000],"arr": [71000,65000,29000,3000,2000,1000,8000,9000,7000,6000,7000,7000],"dep_my": [65000,59000,26000,3000,2000,1000,7000,8000,6000,5000,6000,7000],"dep_th": [5000,5000,2000,0,0,0,1000,1000,1000,1000,1000,0],"arr_my": [66000,60000,27000,3000,2000,1000,7000,8000,6000,5000,6000,9000],"arr_th": [5000,5000,2000,0,0,0,1000,1000,1000,1000,1000,0]},
+      "2021": {"dep": [6000,5000,7000,7000,7000,7000,7000,8000,9000,8000,9000,5000],"arr": [6000,5000,7000,7000,7000,7000,7000,8000,9000,8000,9000,7000],"dep_my": [6000,5000,7000,7000,7000,7000,7000,8000,9000,8000,9000,3000],"dep_th": [0,0,0,0,0,0,0,0,0,0,0,3000],"arr_my": [6000,5000,7000,7000,7000,7000,7000,8000,9000,8000,9000,5000],"arr_th": [0,0,0,0,0,0,0,0,0,0,0,2000]},
+      "2022": {"dep": [20000,18000,28000,35000,40000,40000,43000,43000,45000,48000,48000,42000],"arr": [21000,18000,29000,36000,41000,41000,44000,44000,46000,49000,49000,42000],"dep_my": [18000,16000,25000,32000,36000,36000,39000,39000,41000,44000,44000,40000],"dep_th": [2000,2000,3000,3000,4000,4000,4000,4000,4000,4000,4000,2000],"arr_my": [18000,17000,26000,33000,37000,37000,40000,40000,42000,45000,45000,40000],"arr_th": [3000,1000,3000,3000,4000,4000,4000,4000,4000,4000,4000,2000]},
+      "2023": {"dep": [55000,51000,65000,68000,70000,71000,74000,74000,67000,64000,67000,54000],"arr": [56000,52000,66000,69000,71000,72000,75000,75000,68000,65000,68000,58000],"dep_my": [49000,46000,58000,61000,63000,64000,66000,66000,60000,57000,60000,50000],"dep_th": [6000,5000,7000,7000,7000,7000,8000,8000,7000,7000,7000,4000],"arr_my": [50000,47000,59000,62000,64000,65000,67000,67000,61000,58000,61000,49000],"arr_th": [6000,5000,7000,7000,7000,7000,8000,8000,7000,7000,7000,9000]}
+    }
+  },
+  {
+    "id": "tawau_airport",
+    "name": "Tawau Airport",
+    "full": "TAWAU AIRPORT",
+    "yearly": {
+      "2018": {"dep": 580000, "arr": 592000, "dep_my": 490000, "dep_th": 90000, "dep_ot": 0, "arr_my": 498000, "arr_th": 94000, "arr_ot": 0},
+      "2019": {"dep": 610000, "arr": 622000, "dep_my": 515000, "dep_th": 95000, "dep_ot": 0, "arr_my": 523000, "arr_th": 99000, "arr_ot": 0},
+      "2020": {"dep": 148000, "arr": 152000, "dep_my": 135000, "dep_th": 13000, "dep_ot": 0, "arr_my": 138000, "arr_th": 14000, "arr_ot": 0},
+      "2021": {"dep": 62000,  "arr": 64000,  "dep_my": 60000,  "dep_th": 2000,  "dep_ot": 0, "arr_my": 62000,  "arr_th": 2000,  "arr_ot": 0},
+      "2022": {"dep": 320000, "arr": 328000, "dep_my": 285000, "dep_th": 35000, "dep_ot": 0, "arr_my": 290000, "arr_th": 38000, "arr_ot": 0},
+      "2023": {"dep": 555000, "arr": 568000, "dep_my": 485000, "dep_th": 70000, "dep_ot": 0, "arr_my": 493000, "arr_th": 75000, "arr_ot": 0}
+    },
+    "monthly": {
+      "2018": {"dep": [44000,40000,50000,50000,51000,51000,53000,53000,48000,46000,48000,46000],"arr": [45000,41000,51000,51000,52000,52000,54000,54000,49000,47000,49000,47000],"dep_my": [37000,34000,42000,42000,43000,43000,45000,45000,41000,39000,41000,38000],"dep_th": [7000,6000,8000,8000,8000,8000,8000,8000,7000,7000,7000,8000],"arr_my": [38000,35000,43000,43000,44000,44000,46000,46000,42000,40000,42000,35000],"arr_th": [7000,6000,8000,8000,8000,8000,8000,8000,7000,7000,7000,12000]},
+      "2019": {"dep": [46000,42000,53000,53000,54000,54000,56000,56000,51000,48000,51000,46000],"arr": [47000,43000,54000,54000,55000,55000,57000,57000,52000,49000,52000,47000],"dep_my": [39000,36000,45000,45000,46000,46000,47000,47000,43000,41000,43000,37000],"dep_th": [7000,6000,8000,8000,8000,8000,9000,9000,8000,7000,8000,9000],"arr_my": [40000,37000,46000,46000,47000,47000,48000,48000,44000,42000,44000,34000],"arr_th": [7000,6000,8000,8000,8000,8000,9000,9000,8000,7000,8000,13000]},
+      "2020": {"dep": [48000,44000,18000,2000,1000,1000,5000,6000,5000,4000,5000,9000],"arr": [49000,45000,19000,2000,1000,1000,5000,6000,5000,4000,5000,10000],"dep_my": [44000,40000,16000,2000,1000,1000,5000,6000,5000,4000,5000,6000],"dep_th": [4000,4000,2000,0,0,0,0,0,0,0,0,3000],"arr_my": [45000,41000,17000,2000,1000,1000,5000,6000,5000,4000,5000,6000],"arr_th": [4000,4000,2000,0,0,0,0,0,0,0,0,4000]},
+      "2021": {"dep": [4000,4000,5000,5000,5000,5000,5000,5000,7000,7000,7000,3000],"arr": [4000,4000,5000,5000,5000,5000,5000,5000,7000,7000,7000,5000],"dep_my": [4000,4000,5000,5000,5000,5000,5000,5000,7000,7000,7000,1000],"dep_th": [0,0,0,0,0,0,0,0,0,0,0,2000],"arr_my": [4000,4000,5000,5000,5000,5000,5000,5000,7000,7000,7000,4000],"arr_th": [0,0,0,0,0,0,0,0,0,0,0,1000]},
+      "2022": {"dep": [14000,13000,20000,25000,28000,28000,30000,30000,32000,35000,35000,30000],"arr": [14000,13000,21000,26000,29000,29000,31000,31000,33000,36000,36000,29000],"dep_my": [12000,11000,18000,22000,25000,25000,27000,27000,28000,31000,31000,28000],"dep_th": [2000,2000,2000,3000,3000,3000,3000,3000,4000,4000,4000,2000],"arr_my": [13000,12000,19000,23000,26000,26000,28000,28000,29000,32000,32000,22000],"arr_th": [1000,1000,2000,3000,3000,3000,3000,3000,4000,4000,4000,7000]},
+      "2023": {"dep": [39000,36000,47000,50000,50000,51000,53000,53000,47000,45000,47000,37000],"arr": [40000,37000,48000,51000,51000,52000,54000,54000,48000,46000,48000,39000],"dep_my": [34000,31000,41000,44000,44000,44000,46000,46000,41000,39000,41000,34000],"dep_th": [5000,5000,6000,6000,6000,7000,7000,7000,6000,6000,6000,3000],"arr_my": [35000,32000,42000,45000,45000,45000,47000,47000,42000,40000,42000,31000],"arr_th": [5000,5000,6000,6000,6000,7000,7000,7000,6000,6000,6000,8000]}
+    }
+  },
+  {
+    "id": "tawau_port",
+    "name": "Tawau Port",
+    "full": "TAWAU PORT (MY-ID)",
+    "yearly": {
+      "2018": {"dep": 185000, "arr": 190000, "dep_my": 60000, "dep_th": 125000, "dep_ot": 0, "arr_my": 58000, "arr_th": 132000, "arr_ot": 0},
+      "2019": {"dep": 195000, "arr": 200000, "dep_my": 63000, "dep_th": 132000, "dep_ot": 0, "arr_my": 61000, "arr_th": 139000, "arr_ot": 0},
+      "2020": {"dep": 42000,  "arr": 43000,  "dep_my": 20000, "dep_th": 22000,  "dep_ot": 0, "arr_my": 19000, "arr_th": 24000,  "arr_ot": 0},
+      "2021": {"dep": 8000,   "arr": 8000,   "dep_my": 5000,  "dep_th": 3000,   "dep_ot": 0, "arr_my": 5000,  "arr_th": 3000,   "arr_ot": 0},
+      "2022": {"dep": 95000,  "arr": 97000,  "dep_my": 35000, "dep_th": 60000,  "dep_ot": 0, "arr_my": 34000, "arr_th": 63000,  "arr_ot": 0},
+      "2023": {"dep": 175000, "arr": 180000, "dep_my": 58000, "dep_th": 117000, "dep_ot": 0, "arr_my": 57000, "arr_th": 123000, "arr_ot": 0}
+    },
+    "monthly": {
+      "2018": {"dep": [14000,13000,17000,16000,17000,17000,18000,18000,16000,15000,16000,14000],"arr": [14000,13000,17000,16000,17000,17000,18000,18000,17000,16000,17000,10000],"dep_my": [5000,4000,5000,5000,6000,6000,6000,6000,5000,5000,5000,1000],"dep_th": [9000,9000,12000,11000,11000,11000,12000,12000,11000,10000,11000,13000],"arr_my": [4000,4000,5000,5000,5000,5000,5000,5000,5000,5000,5000,5000],"arr_th": [10000,9000,12000,11000,12000,12000,13000,13000,12000,11000,12000,5000]},
+      "2019": {"dep": [15000,13000,18000,17000,18000,18000,19000,19000,17000,16000,17000,8000],"arr": [15000,14000,18000,17000,18000,18000,19000,19000,17000,16000,17000,12000],"dep_my": [5000,4000,6000,5000,6000,6000,6000,6000,5000,5000,5000,4000],"dep_th": [10000,9000,12000,12000,12000,12000,13000,13000,12000,11000,12000,4000],"arr_my": [5000,4000,6000,5000,5000,5000,6000,6000,5000,5000,5000,4000],"arr_th": [10000,10000,12000,12000,13000,13000,13000,13000,12000,11000,12000,8000]},
+      "2020": {"dep": [14000,12000,5000,1000,0,0,1000,1000,1000,1000,2000,4000],"arr": [15000,12000,5000,1000,0,0,1000,1000,1000,1000,2000,4000],"dep_my": [7000,6000,2000,0,0,0,1000,1000,0,0,1000,2000],"dep_th": [7000,6000,3000,1000,0,0,0,0,1000,1000,1000,2000],"arr_my": [7000,5000,2000,0,0,0,1000,1000,0,0,1000,2000],"arr_th": [8000,7000,3000,1000,0,0,0,0,1000,1000,1000,2000]},
+      "2021": {"dep": [500,500,600,700,700,700,700,700,800,800,900,1100],"arr": [500,500,600,700,700,700,700,700,800,800,900,900],"dep_my": [300,300,400,400,400,400,400,400,500,500,600,400],"dep_th": [200,200,200,300,300,300,300,300,300,300,300,700],"arr_my": [300,300,400,400,400,400,400,400,500,500,600,400],"arr_th": [200,200,200,300,300,300,300,300,300,300,300,500]},
+      "2022": {"dep": [3000,3000,5000,8000,9000,9000,10000,10000,11000,10000,10000,7000],"arr": [3000,3000,5000,8000,9000,9000,10000,10000,11000,10000,10000,9000],"dep_my": [1000,1000,2000,3000,3000,3000,4000,4000,4000,4000,4000,2000],"dep_th": [2000,2000,3000,5000,6000,6000,6000,6000,7000,6000,6000,5000],"arr_my": [1000,1000,2000,3000,3000,3000,4000,4000,4000,4000,4000,1000],"arr_th": [2000,2000,3000,5000,6000,6000,6000,6000,7000,6000,6000,8000]},
+      "2023": {"dep": [13000,12000,16000,16000,16000,16000,17000,17000,14000,13000,14000,11000],"arr": [13000,12000,16000,16000,16000,16000,17000,17000,15000,14000,15000,13000],"dep_my": [4000,4000,5000,5000,5000,5000,6000,6000,5000,5000,5000,3000],"dep_th": [9000,8000,11000,11000,11000,11000,11000,11000,9000,8000,9000,8000],"arr_my": [4000,4000,5000,5000,5000,5000,6000,6000,5000,5000,5000,2000],"arr_th": [9000,8000,11000,11000,11000,11000,11000,11000,10000,9000,10000,11000]}
+    }
+  },
+  {
+    "id": "semporna_jetty",
+    "name": "Semporna Jetty",
+    "full": "SEMPORNA JETTY / FERRY",
+    "yearly": {
+      "2018": {"dep": 95000,  "arr": 98000,  "dep_my": 28000, "dep_th": 67000,  "dep_ot": 0, "arr_my": 27000, "arr_th": 71000,  "arr_ot": 0},
+      "2019": {"dep": 102000, "arr": 105000, "dep_my": 30000, "dep_th": 72000,  "dep_ot": 0, "arr_my": 29000, "arr_th": 76000,  "arr_ot": 0},
+      "2020": {"dep": 18000,  "arr": 19000,  "dep_my": 8000,  "dep_th": 10000,  "dep_ot": 0, "arr_my": 8000,  "arr_th": 11000,  "arr_ot": 0},
+      "2021": {"dep": 2000,   "arr": 2000,   "dep_my": 1500,  "dep_th": 500,    "dep_ot": 0, "arr_my": 1500,  "arr_th": 500,    "arr_ot": 0},
+      "2022": {"dep": 52000,  "arr": 54000,  "dep_my": 18000, "dep_th": 34000,  "dep_ot": 0, "arr_my": 17000, "arr_th": 37000,  "arr_ot": 0},
+      "2023": {"dep": 90000,  "arr": 93000,  "dep_my": 27000, "dep_th": 63000,  "dep_ot": 0, "arr_my": 26000, "arr_th": 67000,  "arr_ot": 0}
+    },
+    "monthly": {
+      "2018": {"dep": [7000,6000,8000,8000,9000,9000,10000,10000,8000,7000,8000,5000],"arr": [7000,6000,8000,8000,9000,9000,10000,10000,8000,7000,8000,9000],"dep_my": [2000,2000,2000,2000,3000,3000,3000,3000,2000,2000,2000,2000],"dep_th": [5000,4000,6000,6000,6000,6000,7000,7000,6000,5000,6000,3000],"arr_my": [2000,2000,2000,2000,2000,2000,2000,2000,2000,2000,2000,3000],"arr_th": [5000,4000,6000,6000,7000,7000,8000,8000,6000,5000,6000,6000]},
+      "2019": {"dep": [7000,6000,9000,9000,10000,10000,10000,10000,8000,8000,8000,7000],"arr": [7000,6000,9000,9000,10000,10000,10000,10000,8000,8000,9000,9000],"dep_my": [2000,2000,3000,3000,3000,3000,3000,3000,2000,2000,2000,2000],"dep_th": [5000,4000,6000,6000,7000,7000,7000,7000,6000,6000,6000,5000],"arr_my": [2000,2000,3000,3000,3000,3000,3000,3000,2000,2000,2000,1000],"arr_th": [5000,4000,6000,6000,7000,7000,7000,7000,6000,6000,7000,8000]},
+      "2020": {"dep": [7000,6000,2000,0,0,0,0,0,0,0,1000,2000],"arr": [7000,6000,2000,0,0,0,0,0,0,0,1000,3000],"dep_my": [3000,3000,1000,0,0,0,0,0,0,0,0,1000],"dep_th": [4000,3000,1000,0,0,0,0,0,0,0,1000,1000],"arr_my": [3000,3000,1000,0,0,0,0,0,0,0,0,1000],"arr_th": [4000,3000,1000,0,0,0,0,0,0,0,1000,2000]},
+      "2021": {"dep": [100,100,100,150,150,150,150,150,200,200,300,350],"arr": [100,100,100,150,150,150,150,150,200,200,300,350],"dep_my": [75,75,75,110,110,110,110,110,150,150,225,200],"dep_th": [25,25,25,40,40,40,40,40,50,50,75,150],"arr_my": [75,75,75,110,110,110,110,110,150,150,225,200],"arr_th": [25,25,25,40,40,40,40,40,50,50,75,150]},
+      "2022": {"dep": [1000,1000,3000,5000,5000,5000,6000,6000,6000,5000,5000,4000],"arr": [1000,1000,3000,5000,5000,5000,6000,6000,6000,5000,5000,6000],"dep_my": [300,300,1000,1500,1500,2000,2000,2000,2000,2000,2000,1400],"dep_th": [700,700,2000,3500,3500,3000,4000,4000,4000,3000,3000,2600],"arr_my": [300,300,1000,1500,1500,2000,2000,2000,2000,2000,2000,400],"arr_th": [700,700,2000,3500,3500,3000,4000,4000,4000,3000,3000,5600]},
+      "2023": {"dep": [6000,5000,8000,8000,9000,9000,9000,9000,7000,7000,8000,5000],"arr": [6000,5000,8000,8000,9000,9000,9000,9000,7000,7000,8000,7000],"dep_my": [2000,1000,2000,2000,3000,3000,3000,3000,2000,2000,2000,2000],"dep_th": [4000,4000,6000,6000,6000,6000,6000,6000,5000,5000,6000,3000],"arr_my": [2000,1000,2000,2000,3000,3000,3000,3000,2000,2000,2000,1000],"arr_th": [4000,4000,6000,6000,6000,6000,6000,6000,5000,5000,6000,6000]}
+    }
+  }
+];
+
+const CROSSING_GRAND = {
+  "2018": {"dep": 5100000, "dep_my": 3198000, "dep_th": 1902000, "dep_ot": 0, "arr": 5195000, "arr_my": 3193000, "arr_th": 2002000, "arr_ot": 0},
+  "2019": {"dep": 5427000, "dep_my": 3348000, "dep_th": 2079000, "dep_ot": 0, "arr": 5532000, "arr_my": 3333000, "arr_th": 2199000, "arr_ot": 0},
+  "2020": {"dep": 1308000, "dep_my": 1038000, "dep_th": 270000,  "dep_ot": 0, "arr": 1339000, "arr_my": 1065000, "arr_th": 274000,  "arr_ot": 0},
+  "2021": {"dep": 537000,  "dep_my": 509000,  "dep_th": 28000,   "dep_ot": 0, "arr": 551000,  "arr_my": 527000,  "arr_th": 24000,   "arr_ot": 0},
+  "2022": {"dep": 2767000, "dep_my": 2108000, "dep_th": 639000,  "dep_ot": 0, "arr": 2829000, "arr_my": 2121000, "arr_th": 708000,  "arr_ot": 0},
+  "2023": {"dep": 4800000, "dep_my": 3090000, "dep_th": 1710000, "dep_ot": 0, "arr": 4916000, "arr_my": 3086000, "arr_th": 1830000, "arr_ot": 0}
+};
+
+
+</script>
+</body>
+</html>
